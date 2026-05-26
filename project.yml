@@ -1,0 +1,35 @@
+name: FolkBeat
+
+options:
+  bundleIdPrefix: com.folkbeat
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "15.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    TARGETED_DEVICE_FAMILY: "2"
+    SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: false
+
+targets:
+  FolkBeat:
+    type: application
+    platform: iOS
+    sources:
+      - path: FolkBeat
+        excludes:
+          - "*.xcassets"
+    resources:
+      - path: FolkBeat/Assets.xcassets
+    settings:
+      base:
+        INFOPLIST_FILE: FolkBeat/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.folkbeat.app
+        PRODUCT_NAME: FolkBeat
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: false
+    entitlements:
+      com.apple.security.app-sandbox: true
+      com.apple.security.network.client: true
