@@ -2,6 +2,8 @@
 
 Een drumcomputer-web-app voor folkbands zonder drummer — een software-versie van het BeatBuddy-pedaal. Draait in de browser op iPad, telefoon en pc; installeerbaar als PWA en offline bruikbaar. Zie [PRD.md](PRD.md) voor de volledige productbeschrijving en roadmap.
 
+**▶ Live: https://fenderberg.github.io/folkbeat/** — open op je iPad/telefoon en kies "Zet op beginscherm" voor de volledige app-ervaring (offline, zonder browserbalk).
+
 > **Let op:** dit verving de eerdere native SwiftUI/iPad-opzet (mei 2026). Die vereiste een Mac met Xcode en is verlaten; dit is een pure web-app zonder build-stap.
 
 ## Starten
