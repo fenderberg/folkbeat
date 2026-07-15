@@ -24,3 +24,8 @@ Pods/
 
 # Xcode auto-generated
 xcuserdata/
+
+# Ruwe sample-packs (bronmateriaal, ~430MB — alleen de geconverteerde
+# mp3/m4a-bestanden in samples/ horen in het repo)
+samples/Raw Unprocessed Drum Pack copy/
+samples/Real Drums Vol. 1/

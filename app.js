@@ -46,25 +46,6 @@ const BUILTIN_STYLES = [
     },
   },
   {
-    id: "wals", name: "Wals", beats: 3, spb: 2, bpm: 140,
-    A: {
-      kick:  [1,0, 0,0, 0,0],
-      stick: [0,0, .8,0, .8,0],
-      hatC:  [.6,0, .4,0, .4,0],
-    },
-    B: {
-      kick:  [1,0, 0,0, 0,.4],
-      snare: [0,0, .6,.3, .6,0],
-      ride:  [.8,0, .5,0, .5,0],
-    },
-    fill: {
-      kick:  [1,0, 0,0, 0,0],
-      snare: [0,0, .6,.4, 0,0],
-      tomH:  [0,0, 0,0, .8,0],
-      tomL:  [0,0, 0,0, 0,.9],
-    },
-  },
-  {
     id: "polka", name: "Polka", beats: 2, spb: 2, bpm: 120,
     A: {
       kick:  [1,0, 0,0],
@@ -84,40 +65,77 @@ const BUILTIN_STYLES = [
     },
   },
   {
-    id: "mazurka", name: "Mazurka", beats: 3, spb: 2, bpm: 150,
+    id: "folkrock", name: "Folk Rock", beats: 4, spb: 2, bpm: 132,
     A: {
-      kick:  [1,0, 0,0, 0,0],
-      stick: [0,0, .9,0, .5,0],
-      hatC:  [.7,0, .6,.3, .5,0],
+      kick:  [1,0, 0,0, .9,0, 0,0],
+      snare: [0,0, .9,0, 0,0, .9,0],
+      hatC:  [.7,.5, .7,.5, .7,.5, .7,.5],
     },
     B: {
-      kick:  [1,0, 0,0, .4,0],
-      snare: [0,0, .9,.3, .5,0],
-      ride:  [.7,0, .6,.3, .5,0],
-    },
-    fill: {
-      kick:  [1,0, 0,0, 0,0],
-      snare: [0,0, .8,.5, 0,0],
-      tomH:  [0,0, 0,0, .8,.8],
-    },
-  },
-  {
-    id: "scottish", name: "Scottish", beats: 4, spb: 2, bpm: 90,
-    A: {
-      kick:  [1,0, 0,.5, .9,0, 0,0],
-      snare: [0,0, .9,0, 0,0, .9,.4],
-      hatC:  [.8,.3, .8,.3, .8,.3, .8,.3],
-    },
-    B: {
-      kick:  [1,0, 0,.5, .9,.4, 0,0],
-      snare: [0,0, .9,0, 0,0, .9,.4],
-      shaker:[.8,.4, .8,.4, .8,.4, .8,.4],
-      ride:  [.7,0, .7,0, .7,0, .7,0],
+      kick:  [1,0, 0,.5, .9,0, 0,.5],
+      snare: [0,0, .9,0, 0,0, .9,0],
+      ride:  [.8,.4, .8,.4, .8,.4, .8,.4],
     },
     fill: {
       kick:  [1,0, 0,0, 0,0, 0,0],
-      snare: [0,0, .8,.4, .6,.6, .8,0],
+      snare: [0,0, .8,.6, .8,.6, .9,0],
+      tomH:  [0,0, 0,0, 0,0, .8,0],
       tomL:  [0,0, 0,0, 0,0, 0,.9],
+    },
+  },
+  {
+    id: "bluegrass", name: "Bluegrass", beats: 4, spb: 2, bpm: 145,
+    A: {
+      kick:  [1,0, 0,0, .9,0, 0,0],
+      snare: [0,0, .9,0, 0,0, .9,0],
+      shaker:[.7,.7, .7,.7, .7,.7, .7,.7],
+    },
+    B: {
+      kick:  [1,0, .5,0, .9,0, .5,0],
+      snare: [0,0, .9,.3, 0,0, .9,.3],
+      hatC:  [.8,.5, .8,.5, .8,.5, .8,.5],
+    },
+    fill: {
+      kick:  [1,0, 0,0, 0,0, 0,0],
+      snare: [0,.6, .8,.6, .8,.6, .9,0],
+      tomH:  [0,0, 0,0, .7,0, 0,0],
+      tomL:  [0,0, 0,0, 0,0, 0,.9],
+    },
+  },
+  {
+    id: "folkpop", name: "Folk Pop", beats: 4, spb: 2, bpm: 128,
+    A: {
+      kick:  [1,0, 0,.5, .9,0, 0,.5],
+      snare: [0,0, .9,0, 0,0, .9,0],
+      shaker:[.4,0, .4,0, .4,0, .4,0],
+    },
+    B: {
+      kick:  [1,0, .6,0, .9,0, .6,0],
+      snare: [0,0, .9,.4, 0,0, .9,.4],
+      ride:  [.7,.3, .7,.3, .7,.3, .7,.3],
+    },
+    fill: {
+      kick:  [1,0, .6,0, 0,0, 0,0],
+      snare: [0,0, .8,.6, .8,.6, .9,.6],
+      tomL:  [0,0, 0,0, 0,0, 0,.9],
+    },
+  },
+  {
+    id: "ballad", name: "Ballad", beats: 4, spb: 2, bpm: 76,
+    A: {
+      kick:  [1,0, 0,0, .8,0, 0,0],
+      stick: [0,0, .7,0, 0,0, .7,0],
+      hatC:  [.5,0, .5,0, .5,0, .5,0],
+    },
+    B: {
+      kick:  [1,0, 0,0, .8,0, 0,.3],
+      stick: [0,0, .7,0, 0,0, .7,0],
+      ride:  [.6,0, .6,0, .6,0, .6,0],
+    },
+    fill: {
+      kick:  [1,0, 0,0, 0,0, 0,0],
+      stick: [0,0, .6,.4, .6,.4, 0,0],
+      tomL:  [0,0, 0,0, 0,0, 0,.7],
     },
   },
 ];
@@ -177,24 +195,45 @@ const KITS = [
     },
   },
   {
-    id: "studio", name: "Studio", fallback: "acoustic",
+    id: "rdstudio", name: "Studio naturel",
     map: {
-      kick: ["st-kick"], snare: ["st-snare"], hatC: ["st-hihat"],
-      tomH: ["st-tom1"], tomL: ["st-tom3"],
+      kick: ["rd-kick1.m4a", "rd-kick2.m4a"], snare: ["rd-snare1.m4a", "rd-snare2.m4a"],
+      stick: ["rd-stick1.m4a", "rd-stick2.m4a"],
+      hatC: ["rd-hatc1.m4a", "rd-hatc2.m4a"], hatO: ["rd-hato1.m4a", "rd-hato2.m4a"],
+      tomH: ["rd-tomh1.m4a", "rd-tomh2.m4a"], tomL: ["rd-toml1.m4a", "rd-toml2.m4a"],
+      crash: ["rd-crash1.m4a", "rd-crash2.m4a"], ride: ["rd-ride1.m4a", "rd-ride2.m4a"],
+      shaker: ["rd-shk1.m4a", "rd-shk2.m4a"],
     },
   },
   {
-    id: "vintage", name: "Vintage", fallback: "acoustic",
+    id: "punch", name: "Punch",
     map: {
-      kick: ["k8-kick"], snare: ["k8-snare"], hatC: ["k8-hihat"],
-      tomH: ["k8-tom1"], tomL: ["k8-tom3"],
+      kick: ["pr-kick1.m4a", "pr-kick2.m4a"], snare: ["pr-snare1.m4a", "pr-snare2.m4a"],
+      stick: ["pr-stick1.m4a", "pr-stick2.m4a"],
+      hatC: ["pr-hatc1.m4a", "pr-hatc2.m4a"], hatO: ["pr-hato1.m4a", "pr-hato2.m4a"],
+      tomH: ["pr-tomh1.m4a", "pr-tomh2.m4a"], tomL: ["pr-toml1.m4a", "pr-toml2.m4a"],
+      crash: ["pr-crash1.m4a", "pr-crash2.m4a"], ride: ["pr-ride1.m4a", "pr-ride2.m4a"],
+      shaker: ["pr-shk1.m4a", "pr-shk2.m4a"],
     },
   },
   {
-    id: "rock", name: "Rock", fallback: "acoustic",
+    id: "raw", name: "Rauw & ruimtelijk", fallback: "acoustic",
     map: {
-      kick: ["sk-kick"], snare: ["sk-snare"], hatC: ["sk-hihat"],
-      tomH: ["sk-tom1"], tomL: ["sk-tom3"],
+      kick: ["rw-kick1.m4a", "rw-kick2.m4a"], snare: ["rw-snare1.m4a", "rw-snare2.m4a"],
+      stick: ["rw-stick1.m4a", "rw-stick2.m4a"],
+      hatO: ["rw-hato1.m4a", "rw-hato2.m4a"],
+      crash: ["rw-crash1.m4a", "rw-crash2.m4a"], ride: ["rw-ride1.m4a", "rw-ride2.m4a"],
+    },
+  },
+  {
+    id: "stompklap", name: "Stomp & klap",
+    map: {
+      kick: ["sc-kick1.m4a", "sc-kick2.m4a"], snare: ["sc-clap1.m4a", "sc-clap2.m4a"],
+      stick: ["sc-stick1.m4a", "sc-stick2.m4a"],
+      hatC: ["sc-hatc1.m4a", "sc-hatc2.m4a"], hatO: ["sc-hato1.m4a", "sc-hato2.m4a"],
+      tomH: ["sc-tomh1.m4a", "sc-tomh2.m4a"], tomL: ["sc-toml1.m4a", "sc-toml2.m4a"],
+      crash: ["sc-crash1.m4a", "sc-crash2.m4a"], ride: ["sc-ride1.m4a", "sc-ride2.m4a"],
+      shaker: ["sc-shk1.m4a", "sc-shk2.m4a"],
     },
   },
   {
@@ -212,7 +251,6 @@ const KITS = [
       shaker: ["shku1", "shku2"],
     },
   },
-  { id: "synth", name: "Synth", map: {} },
 ];
 let kitId = "acoustic";
 function currentKit() { return KITS.find(k => k.id === kitId) || KITS[0]; }
@@ -246,7 +284,7 @@ async function loadSamples() {
   let failed = 0;
   await Promise.all(names.map(async (n) => {
     try {
-      const r = await fetch("samples/" + n + ".mp3");
+      const r = await fetch("samples/" + (n.includes(".") ? n : n + ".mp3"));
       if (!r.ok) throw new Error(r.status);
       buffers[n] = await ctx.decodeAudioData(await r.arrayBuffer());
     } catch (_) { failed++; }
@@ -349,18 +387,15 @@ const state = {
   styleId: "reel",
   bpm: 110,
   swing: 0,             // 0–100% swing over de offbeats
+  humanize: 0,          // 0–100% losse timing en aanslagvariatie
   volume: 90,           // mastervolume 0–100
-  introMode: "count1",  // count1 | count2 | fill | direct
   running: false,
-  phase: "stopped",   // stopped | countin | playing | ending | done
+  phase: "stopped",   // stopped | playing
   preview: false,     // editor-preview actief
   part: "A",
   fillQueued: false,
   partQueued: false,
-  endQueued: false,
   crashAfterFill: false,
-  countinRemaining: 0,
-  introFillPending: false,
   crashThisBar: false,
   barIsFill: false,
   currentGrid: {},
@@ -384,22 +419,52 @@ function swingDelay(step) {
   return (state.swing / 100) * stepDur() / 3; // 100% ≈ triolengevoel
 }
 
+// een fill klinkt niet elke keer hetzelfde: iets drukker, iets kaler, of net iets losser getimed
+function humanizeGrid(grid) {
+  const out = {};
+  for (const inst in grid) {
+    out[inst] = grid[inst].map(v => v ? Math.min(1, Math.max(0.15, v + (Math.random() * 0.16 - 0.08))) : v);
+  }
+  return out;
+}
+function busierFill(grid, len) {
+  const out = {};
+  for (const inst in grid) out[inst] = grid[inst].slice();
+  const filler = "hatC" in out ? "hatC" : ("shaker" in out ? "shaker" : null);
+  if (filler) {
+    for (let i = 0; i < len; i++) {
+      if (!out[filler][i] && Math.random() < 0.35) out[filler][i] = 0.35;
+    }
+  }
+  return out;
+}
+function sparserFill(grid) {
+  const out = {};
+  for (const inst in grid) out[inst] = grid[inst].map(v => (v && v < 0.6) ? 0 : v);
+  return out;
+}
+function pickFill(s) {
+  const base = s.fill || {};
+  const shapes = [base, busierFill(base, s.beats * s.spb), sparserFill(base)];
+  return humanizeGrid(shapes[Math.floor(Math.random() * shapes.length)]);
+}
+
 function scheduleStep() {
   const s = style();
   const t = state.nextNoteTime + swingDelay(state.step);
 
   if (state.step === 0) resolveBar(t);
 
-  if (state.phase === "countin") {
-    if (state.step % s.spb === 0) {
-      SYNTH.click(t, state.step === 0 ? 1 : 0.5);
-      state.visQueue.push({ time: t, beat: state.step / s.spb, step: state.step, fill: false });
-    }
-  } else if (state.phase === "playing" || state.phase === "ending") {
+  if (state.phase === "playing") {
     const grid = state.currentGrid;
+    const h = state.humanize / 100;
     for (const inst in grid) {
       const v = grid[inst][state.step];
-      if (v) playInstrument(inst, t, v);
+      if (!v) continue;
+      // humanize: elke hit onafhankelijk max ±12 ms verschoven en tot ±25% zachter/harder
+      const jt = h ? (Math.random() - 0.5) * 2 * h * 0.012 : 0;
+      const jv = h ? Math.min(1, Math.max(0.1, v * (1 + (Math.random() - 0.5) * 0.5 * h))) : v;
+      playInstrument(inst, Math.max(t + jt, ctx.currentTime), jv);
     }
     if (state.crashThisBar && state.step === 0) playInstrument("crash", t, 1);
     state.visQueue.push({ time: t, beat: Math.floor(state.step / s.spb), step: state.step, onBeat: state.step % s.spb === 0, fill: state.barIsFill });
@@ -421,48 +486,23 @@ function resolveBar(t) {
     return;
   }
 
-  if (state.phase === "countin") {
-    if (state.countinRemaining > 0) { state.countinRemaining--; return; }
-    state.phase = "playing";
-    updateMainBtn();
-  }
-  if (state.phase === "ending") {
-    // outro-maat is klaar: laatste klap en stoppen
-    playInstrument("crash", t, 1);
-    playInstrument("kick", t, 1);
-    state.phase = "done"; // niets meer inplannen na de eindklap
-    stopAt(t + 1.8);
-    return;
-  }
-
   if (state.phase !== "playing") return;
 
-  if (state.introFillPending) {
-    // "fill als intro": eerst een fill-maat, dan met crash het nummer in
-    state.introFillPending = false;
-    state.currentGrid = s.fill || {};
+  if (state.partQueued) {
+    // de fill is al meteen bij het klikken gestart (evt. midden in de vorige maat);
+    // deze maatgrens rondt de wissel af naar het andere part.
+    state.part = state.part === "A" ? "B" : "A";
+    state.partQueued = false;
+    state.currentGrid = s[state.part] || {};
+    state.barIsFill = false;
+    state.crashThisBar = true;
+    state.crashAfterFill = false;
+    updatePartBtn();
+    updateFillLed();
+    setStatus(`Speelt — deel ${state.part}`);
+  } else if (state.fillQueued) {
+    state.currentGrid = pickFill(s);
     state.barIsFill = true;
-    state.crashAfterFill = true;
-    setStatus("Intro…");
-    return;
-  }
-
-  if (state.endQueued) {
-    state.phase = "ending";
-    state.endQueued = false;
-    state.currentGrid = s.fill || {};
-    state.barIsFill = true;
-    setStatus("Einde…");
-    return;
-  }
-  if (state.fillQueued || state.partQueued) {
-    state.currentGrid = s.fill || {};
-    state.barIsFill = true;
-    if (state.partQueued) {
-      state.part = state.part === "A" ? "B" : "A";
-      state.partQueued = false;
-      updatePartBtn();
-    }
     state.fillQueued = false;
     state.crashAfterFill = true;
     updateFillLed();
@@ -488,30 +528,22 @@ function start(opts = {}) {
   if (ctx.state === "suspended") ctx.resume();
   state.running = true;
   state.preview = !!opts.preview;
-  const mode = state.preview ? "direct" : state.introMode;
-  state.countinRemaining = mode === "count2" ? 2 : mode === "count1" ? 1 : 0;
-  state.introFillPending = mode === "fill";
-  // begin met een crash op de eerste echte maat (de fill-intro regelt dat zelf)
-  state.crashAfterFill = !state.preview && !state.introFillPending;
-  state.phase = state.countinRemaining > 0 ? "countin" : "playing";
+  // altijd direct starten: geen count-in, geen fill-intro
+  state.crashAfterFill = !state.preview;
+  state.phase = "playing";
   state.step = 0;
   state.part = "A";
-  state.fillQueued = state.partQueued = state.endQueued = false;
+  state.fillQueued = state.partQueued = false;
   state.visQueue = [];
   state.nextNoteTime = ctx.currentTime + 0.06;
   state.timer = setInterval(schedulerLoop, LOOKAHEAD_MS);
+  stopIdleBlink();
   requestWakeLock();
   updateMainBtn(); updatePartBtn();
   buildBeatDots();
-  if (!state.preview) setStatus(state.countinRemaining ? "Count-in…" : "Start!");
+  if (!state.preview) setStatus("Start!");
 }
 
-function stopAt(when) {
-  const delay = Math.max(0, (when - ctx.currentTime) * 1000);
-  setTimeout(stopNow, delay);
-  clearInterval(state.timer);
-  state.timer = null;
-}
 function stopNow() {
   if (state.timer) clearInterval(state.timer);
   state.timer = null;
@@ -527,6 +559,7 @@ function stopNow() {
   updatePartBtn();
   setStatus("Klaar — druk op start");
   releaseWakeLock();
+  startIdleBlink();
 }
 
 /* ============================================================
@@ -608,7 +641,7 @@ function selectStyleById(id, setTempo = false) {
 }
 
 function persistLast() {
-  lsSet("folkbeat.last", { styleId: state.styleId, bpm: state.bpm, swing: state.swing, introMode: state.introMode });
+  lsSet("folkbeat.last", { styleId: state.styleId, bpm: state.bpm, swing: state.swing, humanize: state.humanize });
 }
 
 function setBpm(v) {
@@ -617,6 +650,7 @@ function setBpm(v) {
   $("dial").style.setProperty("--rot", ((state.bpm - 40) / 180 * 270 - 135) + "deg");
   persistLast();
   renderSongBar();
+  if (!state.running) startIdleBlink();
 }
 
 function setVolume(v) {
@@ -627,12 +661,12 @@ function setVolume(v) {
   lsSet("folkbeat.volume", state.volume);
 }
 
-/* --- swing & intro --- */
-const INTRO_LABELS = { count1: "1 maat aftellen", count2: "2 maten aftellen", fill: "Fill als intro", direct: "Direct starten" };
+/* --- swing & humanize --- */
 function syncPerfControls() {
   $("swingVal").textContent = state.swing + "%";
   $("swingKnob").style.setProperty("--rot", (state.swing / 100 * 270 - 135) + "deg");
-  document.querySelectorAll("[data-introled]").forEach(l => l.classList.toggle("on", l.dataset.introled === state.introMode));
+  $("humVal").textContent = state.humanize + "%";
+  $("humKnob").style.setProperty("--rot", (state.humanize / 100 * 270 - 135) + "deg");
 }
 function setSwing(v) {
   state.swing = Math.min(100, Math.max(0, Math.round(v)));
@@ -640,11 +674,10 @@ function setSwing(v) {
   persistLast();
   renderSongBar();
 }
-function setIntroMode(m) {
-  state.introMode = INTRO_LABELS[m] ? m : "count1";
+function setHumanize(v) {
+  state.humanize = Math.min(100, Math.max(0, Math.round(v)));
   syncPerfControls();
   persistLast();
-  renderSongBar();
 }
 
 /* --- beat-indicator: rij step-keys met LED's --- */
@@ -675,14 +708,29 @@ function clearBeats() {
   $("tapLed").className = "led";
 }
 
+/* --- tempo-LED bij stilstand: knippert altijd op het huidige tempo --- */
+let idleBlinkTimer = null;
+function startIdleBlink() {
+  stopIdleBlink();
+  const tap = $("tapLed");
+  const tick = () => {
+    tap.classList.add("on");
+    setTimeout(() => tap.classList.remove("on"), 90);
+  };
+  tick();
+  idleBlinkTimer = setInterval(tick, 60000 / state.bpm);
+}
+function stopIdleBlink() {
+  if (idleBlinkTimer) clearInterval(idleBlinkTimer);
+  idleBlinkTimer = null;
+}
+
 /* --- transport-LED's --- */
 function updateMainBtn() {
-  const play = $("playLed"), stop = $("stopLed");
-  play.className = "led"; stop.className = "led";
-  if (state.phase === "stopped") stop.classList.add("on");
-  else if (state.phase === "countin") play.classList.add("blink");
-  else if (state.phase === "playing") play.classList.add("on");
-  else { play.classList.add("on"); stop.classList.add("blink"); } // outro
+  const running = state.phase === "playing";
+  $("playLed").className = "led" + (running ? " on" : "");
+  $("playIcon").textContent = running ? "■" : "▶";
+  $("playLabel").textContent = running ? "STOP" : "START";
 }
 function updatePartBtn() {
   const a = $("partALed"), b = $("partBLed");
@@ -703,10 +751,7 @@ function mainAction() {
   lastMainAction = now;
   if (state.preview) { stopNow(); return; }
   if (!state.running) start();
-  else if (state.phase === "playing") {
-    state.endQueued = true;
-    setStatus("Einde na deze maat…");
-  }
+  else stopNow();
 }
 function fillAction() {
   if (state.phase !== "playing" || state.preview) return;
@@ -719,29 +764,42 @@ function partAction() {
     if (!state.running) { state.part = state.part === "A" ? "B" : "A"; updatePartBtn(); }
     return;
   }
+  if (state.partQueued) return; // wissel is al onderweg
   state.partQueued = true;
+  state.fillQueued = false;
+  // meteen (desnoods midden in de maat) een random fill in, niet pas volgende ronde
+  state.currentGrid = pickFill(style());
+  state.barIsFill = true;
   updatePartBtn();
+  updateFillLed();
+  setStatus(`<span class="fill-flash">FILL</span>`);
 }
 // part-knoppen A/B: tik op de niet-actieve om te wisselen (of een wachtende wissel te annuleren)
 function requestPart(p) {
   if (state.preview) return;
-  if (state.partQueued && state.part === p) { state.partQueued = false; updatePartBtn(); return; }
+  if (state.partQueued && state.part === p) {
+    // wissel annuleren: meteen terug naar de maat die al speelde
+    state.partQueued = false;
+    state.currentGrid = style()[state.part] || {};
+    state.barIsFill = false;
+    updatePartBtn();
+    updateFillLed();
+    setStatus(`Speelt — deel ${state.part}`);
+    return;
+  }
   if (state.part === p) return;
   partAction();
 }
 
-$("startBtn").onclick = () => { if (!state.running) mainAction(); };
-$("stopBtn").onclick = () => { if (state.running) mainAction(); };
+$("startBtn").onclick = mainAction;
 fillBtn.onclick = fillAction;
 $("partABtn").onclick = () => requestPart("A");
 $("partBBtn").onclick = () => requestPart("B");
 $("bpmUp").onclick = () => setBpm(state.bpm + 2);
 $("bpmDown").onclick = () => setBpm(state.bpm - 2);
-document.querySelectorAll("#introBtns [data-intro]").forEach(b => {
-  b.onclick = () => setIntroMode(b.dataset.intro);
-});
 knobDrag($("dial"), () => state.bpm, setBpm, 40, 220, 0.5);
 knobDrag($("swingKnob"), () => state.swing, setSwing, 0, 100, 0.5);
+knobDrag($("humKnob"), () => state.humanize, setHumanize, 0, 100, 0.5);
 knobDrag($("volKnob"), () => state.volume, setVolume, 0, 100, 0.6);
 
 /* --- drumkit-keuze --- */
@@ -834,15 +892,6 @@ function buildSongEditRow(row, song, i) {
   // nieuwe groove gekozen → standaardtempo van die groove voorstellen
   sel.onchange = () => { const st = styleById(sel.value); if (st) bpm.value = st.bpm; };
 
-  const intro = document.createElement("select");
-  for (const [val, label] of Object.entries(INTRO_LABELS)) {
-    const o = document.createElement("option");
-    o.value = val; o.textContent = label;
-    intro.appendChild(o);
-  }
-  intro.value = song.intro ?? "count1";
-  intro.title = "Intro";
-
   const swing = document.createElement("input");
   swing.type = "number"; swing.min = 0; swing.max = 100; swing.step = 5;
   swing.value = song.swing ?? 0; swing.className = "e-swing"; swing.title = "Swing %";
@@ -853,7 +902,6 @@ function buildSongEditRow(row, song, i) {
     song.name = name.value.trim() || song.name;
     song.styleId = sel.value;
     song.bpm = Math.min(220, Math.max(40, +bpm.value || song.bpm));
-    song.intro = intro.value;
     song.swing = Math.min(100, Math.max(0, +swing.value || 0));
     editIdx = -1;
     saveSetlist();
@@ -862,7 +910,6 @@ function buildSongEditRow(row, song, i) {
       if (st) selectStyleById(st.id);
       setBpm(song.bpm);
       setSwing(song.swing);
-      setIntroMode(song.intro);
     }
     renderSetlist();
   };
@@ -870,7 +917,7 @@ function buildSongEditRow(row, song, i) {
   cancel.textContent = "✕";
   cancel.onclick = () => { editIdx = -1; renderSetlist(); };
 
-  row.append(name, sel, bpm, intro, swing, ok, cancel);
+  row.append(name, sel, bpm, swing, ok, cancel);
   row.onclick = (e) => e.stopPropagation();
 }
 function moveSong(i, d) {
@@ -888,7 +935,6 @@ function loadSong(i) {
   if (st) selectStyleById(st.id);
   setBpm(song.bpm);
   setSwing(song.swing ?? 0);
-  setIntroMode(song.intro ?? "count1");
   renderSetlist();
   showView("player");
 }
@@ -908,9 +954,9 @@ function renderSongBar() {
     $("songName").textContent = "Setlist";
     $("songMeta").textContent = setlist.length + " nummers — tik ▶ voor het eerste";
   }
-  // tempo, groove, swing of intro in de speler afwijkend? Toon de bewaarknop
+  // tempo, groove of swing in de speler afwijkend? Toon de bewaarknop
   const dirty = song && (song.bpm !== state.bpm || song.styleId !== state.styleId
-    || (song.swing ?? 0) !== state.swing || (song.intro ?? "count1") !== state.introMode);
+    || (song.swing ?? 0) !== state.swing);
   $("saveSongBtn").hidden = !dirty;
 }
 $("saveSongBtn").onclick = () => {
@@ -919,7 +965,6 @@ $("saveSongBtn").onclick = () => {
   song.bpm = state.bpm;
   song.styleId = state.styleId;
   song.swing = state.swing;
-  song.intro = state.introMode;
   saveSetlist();
   renderSetlist();
 };
@@ -1188,7 +1233,7 @@ if (last && styleById(last.styleId)) {
   state.styleId = last.styleId;
   state.bpm = last.bpm || 110;
   state.swing = last.swing || 0;
-  if (INTRO_LABELS[last.introMode]) state.introMode = last.introMode;
+  state.humanize = last.humanize || 0;
 }
 rebuildStyleLists();
 selectStyleById(state.styleId);

@@ -56,17 +56,11 @@
     border-radius: 8px;
     margin: 12px 14px 8px; padding: 8px 12px;
   }
-  .logo { display: flex; gap: 2px; align-items: center; flex-shrink: 0; }
-  .logo b {
-    display: inline-block; width: 17px; height: 20px; line-height: 20px;
-    background: #e8e9ec; color: #15171b; text-align: center;
-    font-size: 13px; font-weight: 900; border-radius: 2px;
+  .logo { display: flex; align-items: center; flex-shrink: 0; }
+  .logo-icon {
+    width: 30px; height: 30px; border-radius: 7px; display: block;
+    box-shadow: 0 1px 1px rgba(255,255,255,.15);
   }
-  .logo .dot {
-    width: 9px; height: 9px; border-radius: 50%; margin: 0 2px;
-    background: radial-gradient(circle at 35% 30%, #ff8a7a, #c0392b);
-  }
-  .logo b.accent { background: var(--panel-hi); color: #fff; }
 
   nav#tabs { display: flex; gap: 8px; margin-left: 6px; }
   nav#tabs .ledbtn { gap: 3px; }
@@ -83,6 +77,11 @@
   }
   #sigDisplay {
     color: #b8bcc6; font-size: 12px; font-weight: 700; letter-spacing: 1px; flex-shrink: 0;
+  }
+
+  @media (max-width: 480px) {
+    header { flex-wrap: wrap; row-gap: 6px; }
+    #kitWrap { flex: 1 1 auto; }
   }
 
   /* ================= ALGEMENE HARDWARE-ELEMENTEN ================= */
@@ -216,9 +215,6 @@
 
   .knobwrap { display: flex; flex-direction: column; align-items: center; gap: 5px; }
   .knobwrap .val { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--ink); opacity: .85; }
-  #introBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  #introBtns .pushbtn { font-size: 8px; padding: 6px 5px; width: 100%; }
-  #introBtns .ledbtn { gap: 3px; }
 
   /* zeefdruk-branding in de vrije ruimte */
   #silk {
@@ -367,9 +363,7 @@
 <div class="screw bl"></div><div class="screw br"></div>
 
 <header>
-  <div class="logo">
-    <b>F</b><b>O</b><b>L</b><b>K</b><span class="dot"></span><b class="accent">B</b><b>E</b><b>A</b><b>T</b>
-  </div>
+  <div class="logo"><img src="icon.svg" alt="FolkBeat" class="logo-icon"></div>
   <nav id="tabs">
     <div class="ledbtn"><span class="led on" data-viewled="player"></span><button class="pushbtn" data-view="player">PATTERN</button></div>
     <div class="ledbtn"><span class="led" data-viewled="setlist"></span><button class="pushbtn" data-view="setlist">SONG</button></div>
@@ -420,15 +414,14 @@
         <div class="val" id="swingVal">0%</div>
       </div>
       <div class="knobwrap">
+        <div class="knob" id="humKnob" title="sleep voor humanize: losser getimed en gevarieerder aangeslagen"></div>
+        <div class="lbl">HUMANIZE</div>
+        <div class="val" id="humVal">0%</div>
+      </div>
+      <div class="knobwrap">
         <div class="knob" id="volKnob" title="sleep voor volume"></div>
         <div class="lbl">VOLUME</div>
         <div class="val" id="volVal">90%</div>
-      </div>
-      <div id="introBtns">
-        <div class="ledbtn"><span class="led" data-introled="count1"></span><button class="pushbtn" data-intro="count1">1 MAAT</button></div>
-        <div class="ledbtn"><span class="led" data-introled="count2"></span><button class="pushbtn" data-intro="count2">2 MATEN</button></div>
-        <div class="ledbtn"><span class="led" data-introled="fill"></span><button class="pushbtn" data-intro="fill">FILL</button></div>
-        <div class="ledbtn"><span class="led" data-introled="direct"></span><button class="pushbtn" data-intro="direct">DIRECT</button></div>
       </div>
     </div>
   </div>
@@ -436,8 +429,7 @@
   <div id="statusLine" class="lcd">Klaar — druk op start</div>
 
   <div id="controls">
-    <button id="stopBtn" class="bigbtn"><span class="led" id="stopLed"></span>■<small>STOP / OUTRO</small></button>
-    <button id="startBtn" class="bigbtn"><span class="led" id="playLed"></span>▶<small>START</small></button>
+    <button id="startBtn" class="bigbtn"><span class="led" id="playLed"></span><span id="playIcon">▶</span><small id="playLabel">START</small></button>
     <button id="fillBtn" class="bigbtn pink"><span class="led" id="fillLed"></span>FILL<small>PGUP / F</small></button>
     <button id="partABtn" class="bigbtn"><span class="led on" id="partALed"></span>A<small>PART</small></button>
     <button id="partBBtn" class="bigbtn"><span class="led" id="partBLed"></span>B<small>PART</small></button>
