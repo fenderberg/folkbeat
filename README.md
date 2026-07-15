@@ -1,118 +1,67 @@
 # FolkBeat
 
-A live performance drum companion app for folk/Americana bands, built with SwiftUI for iPad.
+Een drumcomputer-web-app voor folkbands zonder drummer — een software-versie van het BeatBuddy-pedaal. Draait in de browser op iPad, telefoon en pc; installeerbaar als PWA en offline bruikbaar. Zie [PRD.md](PRD.md) voor de volledige productbeschrijving en roadmap.
 
-## Requirements
+> **Let op:** dit verving de eerdere native SwiftUI/iPad-opzet (mei 2026). Die vereiste een Mac met Xcode en is verlaten; dit is een pure web-app zonder build-stap.
 
-- macOS with Xcode 15+
-- iOS 17+ iPad (simulator or device)
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (to generate the `.xcodeproj`)
+## Starten
 
-## Setup
+Er is geen build-stap. Serveer de map met een willekeurige statische webserver:
 
 ```bash
-# 1. Install XcodeGen (if not already installed)
-brew install xcodegen
-
-# 2. Generate the Xcode project
-cd BeatBuddy
-xcodegen generate
-
-# 3. Open in Xcode
-open FolkBeat.xcodeproj
+npx serve -l 8321 .
+# open http://localhost:8321
 ```
 
-**Alternative (without XcodeGen):**
+Of open `index.html` direct in de browser (werkt, maar zonder service worker/offline cache).
 
-1. Open Xcode → File → New → Project → iOS App (SwiftUI, Swift, SwiftData)
-2. Name it "FolkBeat", set target to iPad, iOS 17+
-3. Delete the generated source files
-4. Drag the `FolkBeat/` folder into the Xcode project navigator
-5. Ensure all `.swift` files are added to the FolkBeat target
-6. Copy the `Info.plist` values into the target's build settings or use the plist file directly
+Voor gebruik op iPad/telefoon: host de map op een https-adres (bijv. GitHub Pages of Netlify), open de URL in de browser en kies "Zet op beginscherm". De app werkt daarna offline.
 
-## Project Structure
+## Bediening
+
+| Actie | Scherm | Toets / pedaal |
+|---|---|---|
+| Start · stop (outro) | grote knop | spatie, Enter, PgDn, → |
+| Fill | FILL | PgUp, ←, F |
+| Deel A ↔ B (via fill) | DEEL A → B | B |
+| Volgend / vorig nummer | ▶ / ◀ in songbalk | N / P |
+| Tempo ±2 BPM | − / + | ↑ / ↓ |
+
+Bluetooth page-turner-pedalen (AirTurn e.d.) sturen PgUp/PgDn of pijltjestoetsen en werken dus direct als voetschakelaar.
+
+## Bestanden
 
 ```
-FolkBeat/
-├── App/
-│   └── FolkBeatApp.swift          # App entry point, SwiftData container
-├── Models/
-│   ├── TimeSignature.swift        # 4/4, 3/4, 6/8 enum
-│   ├── DrumVoice.swift            # Kick, snare, hihat, etc.
-│   ├── DrumPattern.swift          # Pattern grid definition
-│   ├── PatternLibrary.swift       # All built-in Americana patterns
-│   ├── Song.swift                 # SwiftData song model
-│   ├── SongSection.swift          # SwiftData section model
-│   ├── Setlist.swift              # SwiftData setlist model
-│   ├── SetlistEntry.swift         # Join model for setlist ordering
-│   └── MIDIMapping.swift          # MIDI CC → action mapping
-├── Audio/
-│   ├── SampleGenerator.swift      # Synthesizes placeholder drum samples
-│   ├── DrumSampleManager.swift    # Singleton sample cache
-│   └── BeatSequencer.swift        # AVAudioEngine real-time sequencer
-├── MIDI/
-│   └── MIDIManager.swift          # CoreMIDI input + MIDI Learn
-├── ViewModels/
-│   └── PerformanceViewModel.swift # Bridges sequencer ↔ SwiftUI views
-├── Views/
-│   ├── ContentView.swift          # Root navigation (NavigationSplitView)
-│   ├── Setlists/
-│   │   ├── SetlistListView.swift
-│   │   └── SetlistDetailView.swift
-│   ├── Songs/
-│   │   ├── SongListView.swift
-│   │   └── SongEditorView.swift
-│   ├── Performance/
-│   │   ├── PerformanceView.swift  # Primary live screen
-│   │   ├── SectionButton.swift    # Large section tap targets
-│   │   └── BPMControlView.swift   # BPM +/- and tap tempo
-│   └── Settings/
-│       └── SettingsView.swift     # MIDI mapping, audio info
-├── Assets.xcassets/
-└── Info.plist
+index.html            Opmaak en styling (drie tabbladen: Speler, Setlist, Grooves)
+app.js                Alle logica: sequencer, sample-engine, kits, setlist, editor
+sw.js                 Service worker (app network-first, samples cache-first)
+manifest.webmanifest  PWA-manifest
+icon.svg              App-icoon
+samples/              67 drumsamples (mono-mp3, ±1,9 MB totaal)
+PRD.md                Productbeschrijving en roadmap
 ```
 
-## Architecture
+## Grooves en kits toevoegen
 
-- **BeatSequencer** — Heart of the app. Uses `AVAudioEngine` with `AVAudioPlayerNode` instances per drum voice. A high-priority `DispatchSource` timer schedules sample playback using `AVAudioTime(hostTime:)` for drift-free, sample-accurate timing over long performances.
+- **Groove:** voeg een object toe aan `BUILTIN_STYLES` in [app.js](app.js) (of maak hem in de app via het Grooves-tabblad). Een groove is per deel (A/B/fill) een set velocity-arrays per instrument; arraylengte = tellen × onderverdeling.
+- **Kit:** voeg een blokje toe aan de `KITS`-array: instrumentnaam → samplebestanden (zonder `.mp3`). Met `fallback: "acoustic"` vult een ander kit ontbrekende instrumenten aan. Zet nieuwe samples als mono-mp3 in `samples/` en voeg de namen toe aan de lijst in [sw.js](sw.js).
 
-- **PerformanceViewModel** — `@Observable` + `@MainActor` bridge. Receives callbacks from the sequencer's background scheduling queue and publishes state changes to SwiftUI on the main thread.
+## Samplebronnen
 
-- **DrumPattern / PatternLibrary** — Pure data. Patterns are 16-step (4/4) or 12-step (3/4, 6/8) boolean grids keyed by `DrumVoice`. Swing is handled in the sequencer's timing math, not in the grid data.
+| Bron | Gebruikt voor | Licentie |
+|---|---|---|
+| [The Open Source Drum Kit](https://github.com/crabacus/the-open-source-drumkit) (Real Music Media) | kits Akoestisch, Droog & folky | gratis uitgebracht ("open source drum kit") |
+| [Tone.js audio](https://github.com/Tonejs/audio) (uit Chris Wilsons web-audio-samples) | kits Studio, Vintage, Rock | zie bronrepo |
+| [VCSL](https://github.com/sgossner/VCSL) (Versilian Studios) | Bodhrán & percussie, shaker | CC0 (publiek domein) |
 
-- **MIDIManager** — Wraps CoreMIDI. Connects to all available sources on startup and reconnects when devices change. Supports MIDI Learn: press "Learn", hit a pedal button, the CC number is captured and mapped to an action.
+Alle samples zijn geconverteerd naar mono-mp3 128 kbps met verwijdering van beginstilte (ffmpeg).
 
-## Replacing Drum Samples
+## Opslag
 
-The app ships with synthesized placeholder samples (sine waves + noise). To use real recordings:
+Alles staat lokaal in `localStorage` onder `folkbeat.*`-sleutels: eigen grooves, setlist, gekozen kit en laatste instellingen. Er is geen backend. Wis je de sitedata van de browser, dan ben je eigen grooves en setlists kwijt — export/import staat op de roadmap.
 
-1. Prepare short WAV or CAF files (44.1 kHz, stereo, <1 second each)
-2. Name them: `kick.wav`, `snare.wav`, `hihat_closed.wav`, `hihat_open.wav`, `brush_swirl.wav`, `rim.wav`, `crash.wav`
-3. Add them to the Xcode project bundle
-4. Update `DrumSampleManager.loadSamples()` to load from bundle files instead of calling `SampleGenerator`
+## Bekende beperkingen (iOS)
 
-## Merging with Google Stitch Designs
-
-The project is structured so UI views are thin wrappers around the `PerformanceViewModel`. To apply Stitch-generated SwiftUI views:
-
-1. Replace or modify the files under `Views/` with your Stitch output
-2. Bind to the existing `PerformanceViewModel` properties:
-   - `vm.isPlaying`, `vm.currentStep`, `vm.currentBar`
-   - `vm.sections`, `vm.currentSectionIndex`, `vm.queuedSectionIndex`
-   - `vm.bpm`, `vm.song`, `vm.setlist`
-3. Call the ViewModel methods for interactions:
-   - `vm.play()`, `vm.stop()`, `vm.selectSection(_:)`
-   - `vm.adjustBPM(by:)`, `vm.tapTempo()`
-   - `vm.nextSong()`, `vm.previousSong()`
-
-## Live Performance Patterns
-
-| Pattern | Time Sig | Description |
-|---------|----------|-------------|
-| `country_4_4` | 4/4 | Kick 1+3, snare 2+4, closed hats on 8ths |
-| `brush_ballad` | 4/4 | Brush swirl, soft kick 1+3, rim on 2+4 |
-| `shuffle` | 4/4 | Swing 8th feel, kick 1+3, snare 2+4 |
-| `half_time` | 4/4 | Kick 1, snare 3, open hats 2+4 |
-| `build` | 4/4 | Country + crash on beat 1 |
-| `waltz_3_4` | 3/4 | Kick 1, snare 2+3 |
+- Geluid start pas na een eerste tik op het scherm (browserbeleid).
+- De fysieke mute-schakelaar van de iPad dempt web-audio.
+- Web MIDI wordt door Safari niet ondersteund; pedalen werken via toetsaanslagen.

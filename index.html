@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#12141a">
+<link rel="manifest" href="manifest.webmanifest">
+<title>FolkBeat</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    background: #12141a; color: #e8e6e0;
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    display: flex; flex-direction: column;
+    user-select: none; -webkit-user-select: none;
+    touch-action: manipulation;
+    overflow: hidden;
+  }
+  button, input, select { font-family: inherit; }
+
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 8px 16px; border-bottom: 1px solid #262a35; flex-shrink: 0;
+  }
+  header h1 { font-size: 17px; letter-spacing: 2px; color: #f0a848; margin-right: 4px; }
+  nav#tabs { display: flex; gap: 6px; flex: 1; }
+  nav#tabs button {
+    padding: 8px 14px; border-radius: 10px; border: none; cursor: pointer;
+    background: transparent; color: #8a8fa0; font-size: 15px; font-weight: 600;
+  }
+  nav#tabs button.active { background: #262a35; color: #fff; }
+  #kitSelect {
+    padding: 7px 8px; border-radius: 10px; border: 2px solid #2a2f3d;
+    background: #1d212c; color: #e8e6e0; font-size: 14px; max-width: 130px;
+  }
+  #sigDisplay { font-size: 15px; color: #8a8fa0; }
+
+  main { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  main[hidden] { display: none; }
+
+  /* ---------- SPELER ---------- */
+  #songBar {
+    display: flex; align-items: center; gap: 10px; padding: 8px 16px 0;
+  }
+  #songBar[hidden] { display: none; }
+  #saveSongBtn { border-color: #f0a848 !important; }
+  #saveSongBtn[hidden] { display: none; }
+  #songBar button {
+    width: 44px; height: 44px; border-radius: 10px; font-size: 18px; cursor: pointer;
+    background: #1d212c; color: #e8e6e0; border: 2px solid #2a2f3d;
+  }
+  #songInfo { flex: 1; text-align: center; line-height: 1.2; }
+  #songInfo b { font-size: 17px; }
+  #songInfo small { display: block; color: #8a8fa0; }
+
+  #styles {
+    display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px;
+    flex-shrink: 0; scrollbar-width: none;
+  }
+  #styles::-webkit-scrollbar { display: none; }
+  .style-btn {
+    flex-shrink: 0; padding: 12px 18px; border-radius: 12px;
+    background: #1d212c; color: #b8bcc8; border: 2px solid #2a2f3d;
+    font-size: 16px; font-weight: 600; cursor: pointer;
+  }
+  .style-btn.active { background: #f0a848; border-color: #f0a848; color: #12141a; }
+  .style-btn .custom-mark { color: #ff6b4a; }
+  .style-btn.active .custom-mark { color: #12141a; }
+
+  #tempoRow { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
+  #bpmDisplay {
+    font-size: 44px; font-weight: 800; min-width: 110px; text-align: center;
+    font-variant-numeric: tabular-nums; color: #fff;
+  }
+  #bpmDisplay small { font-size: 14px; font-weight: 500; color: #8a8fa0; display: block; }
+  .tempo-btn {
+    width: 54px; height: 54px; border-radius: 50%; font-size: 26px; font-weight: 700;
+    background: #1d212c; color: #e8e6e0; border: 2px solid #2a2f3d; cursor: pointer;
+  }
+  .tempo-btn:active { background: #2a2f3d; }
+  #tempoSlider { flex: 1; accent-color: #f0a848; height: 40px; }
+  #tapBtn {
+    padding: 0 18px; height: 54px; border-radius: 12px; font-size: 16px; font-weight: 700;
+    background: #1d212c; color: #e8e6e0; border: 2px solid #2a2f3d; cursor: pointer;
+  }
+  #tapBtn:active { background: #f0a848; color: #12141a; }
+
+  #optsRow {
+    display: flex; align-items: center; gap: 18px; padding: 0 16px 6px; flex-wrap: wrap;
+  }
+  #optsRow label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #8a8fa0; }
+  #optsRow select {
+    padding: 8px 10px; border-radius: 10px; border: 2px solid #2a2f3d;
+    background: #1d212c; color: #e8e6e0; font-size: 14px;
+  }
+  #swingLabel { flex: 1; min-width: 220px; }
+  #swingSlider { flex: 1; accent-color: #f0a848; height: 32px; }
+  #swingVal { min-width: 42px; text-align: right; color: #e8e6e0; font-variant-numeric: tabular-nums; }
+
+  #beatRow { display: flex; justify-content: center; gap: 14px; padding: 10px 0 6px; min-height: 40px; }
+  .beat-dot { width: 26px; height: 26px; border-radius: 50%; background: #2a2f3d; transition: transform 0.05s; }
+  .beat-dot.on { background: #f0a848; transform: scale(1.35); }
+  .beat-dot.on.downbeat { background: #ff6b4a; }
+
+  #statusLine { text-align: center; font-size: 15px; color: #8a8fa0; min-height: 22px; padding-bottom: 4px; }
+  #statusLine .fill-flash { color: #ff6b4a; font-weight: 700; }
+
+  #controls {
+    flex: 1; display: grid; gap: 12px; padding: 8px 16px 16px;
+    grid-template-columns: 1fr 1fr; grid-template-rows: 2fr 1fr;
+    grid-template-areas: "main main" "fill part"; min-height: 0;
+  }
+  #mainBtn {
+    grid-area: main; border-radius: 20px; border: none; cursor: pointer;
+    font-size: 34px; font-weight: 800; letter-spacing: 1px; background: #2ea866; color: #fff;
+  }
+  #mainBtn.playing { background: #c0392b; }
+  #mainBtn.countin { background: #f0a848; color: #12141a; }
+  #mainBtn:active { filter: brightness(1.15); }
+  #fillBtn, #partBtn {
+    border-radius: 16px; border: 2px solid #2a2f3d; cursor: pointer;
+    font-size: 22px; font-weight: 700; background: #1d212c; color: #e8e6e0;
+  }
+  #fillBtn:active, #partBtn:active { background: #f0a848; color: #12141a; }
+  #fillBtn.queued, #partBtn.queued { border-color: #f0a848; color: #f0a848; }
+
+  footer { padding: 6px 16px 12px; text-align: center; font-size: 12px; color: #565b6b; }
+
+  /* ---------- SETLIST ---------- */
+  #view-setlist { padding: 14px 16px; gap: 10px; overflow-y: auto; }
+  #setlistRows { display: flex; flex-direction: column; gap: 8px; }
+  .song-row {
+    display: flex; align-items: center; gap: 8px;
+    background: #1d212c; border: 2px solid #2a2f3d; border-radius: 12px; padding: 10px 12px;
+    cursor: pointer;
+  }
+  .song-row.current { border-color: #f0a848; }
+  .song-row .num { color: #565b6b; font-weight: 700; width: 24px; }
+  .song-row .info { flex: 1; line-height: 1.25; }
+  .song-row .info b { font-size: 16px; }
+  .song-row .info small { display: block; color: #8a8fa0; }
+  .song-row button {
+    width: 38px; height: 38px; border-radius: 8px; border: 1px solid #2a2f3d;
+    background: #262a35; color: #b8bcc8; font-size: 15px; cursor: pointer; flex-shrink: 0;
+  }
+  .song-row button.del { color: #ff6b4a; }
+  .song-row.editing { border-color: #f0a848; cursor: default; flex-wrap: wrap; }
+  .song-row.editing input, .song-row.editing select {
+    padding: 9px 10px; border-radius: 8px; border: 2px solid #2a2f3d;
+    background: #12141a; color: #e8e6e0; font-size: 15px; min-width: 0;
+  }
+  .song-row.editing .e-name { flex: 2 1 130px; }
+  .song-row.editing select { flex: 2 1 120px; }
+  .song-row.editing .e-bpm { width: 72px; }
+  .song-row.editing .e-swing { width: 64px; }
+  .song-row.editing button.ok { background: #2ea866; color: #fff; border-color: #2ea866; }
+  #addSongForm { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  #addSongForm input, #addSongForm select {
+    padding: 10px 12px; border-radius: 10px; border: 2px solid #2a2f3d;
+    background: #1d212c; color: #e8e6e0; font-size: 15px;
+  }
+  #songNameInput { flex: 2; min-width: 140px; }
+  #songStyle { flex: 2; min-width: 120px; }
+  #songBpm { width: 84px; }
+  #addSongForm button {
+    padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer;
+    background: #2ea866; color: #fff; font-size: 15px; font-weight: 700;
+  }
+  .hint { color: #565b6b; font-size: 13px; margin-top: 8px; }
+
+  /* ---------- EDITOR ---------- */
+  #view-editor { padding: 12px 16px; gap: 10px; overflow-y: auto; }
+  .ed-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ed-row label { font-size: 13px; color: #8a8fa0; display: flex; align-items: center; gap: 6px; }
+  .ed-row input, .ed-row select {
+    padding: 9px 10px; border-radius: 10px; border: 2px solid #2a2f3d;
+    background: #1d212c; color: #e8e6e0; font-size: 15px;
+  }
+  #edName { flex: 1; min-width: 130px; }
+  #edBpm { width: 74px; }
+  .ed-row button {
+    padding: 9px 16px; border-radius: 10px; border: 2px solid #2a2f3d; cursor: pointer;
+    background: #1d212c; color: #e8e6e0; font-size: 15px; font-weight: 600;
+  }
+  #edParts button.active { background: #f0a848; border-color: #f0a848; color: #12141a; }
+  #edSave { background: #2ea866; border-color: #2ea866; color: #fff; }
+  #edPreview.on { background: #c0392b; border-color: #c0392b; color: #fff; }
+  #edDelete { color: #ff6b4a; }
+  #edMsg { font-size: 13px; color: #2ea866; }
+
+  #edGridWrap { overflow-x: auto; }
+  #edGrid { display: grid; gap: 3px; width: max-content; }
+  .ed-label { font-size: 12px; color: #8a8fa0; padding-right: 8px; display: flex; align-items: center; height: 30px; white-space: nowrap; }
+  .ed-cell {
+    width: 30px; height: 30px; border-radius: 6px; background: #1d212c;
+    border: 1px solid #2a2f3d; cursor: pointer; position: relative;
+  }
+  .ed-cell.beat-start { border-left: 2px solid #565b6b; }
+  .ed-cell[data-v="0.5"] { background: #9c6c2e; }
+  .ed-cell[data-v="1"]   { background: #f0a848; }
+  .ed-cell.playhead { outline: 2px solid #ff6b4a; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>FOLKBEAT</h1>
+  <nav id="tabs">
+    <button data-view="player" class="active">Speler</button>
+    <button data-view="setlist">Setlist</button>
+    <button data-view="editor">Grooves</button>
+  </nav>
+  <select id="kitSelect" title="Drumkit"></select>
+  <div id="sigDisplay">4/4</div>
+</header>
+
+<main id="view-player">
+  <div id="songBar" hidden>
+    <button id="prevSongBtn">◀</button>
+    <div id="songInfo"><b id="songName"></b><small id="songMeta"></small></div>
+    <button id="saveSongBtn" hidden title="Huidig tempo en groove in dit nummer bewaren">💾</button>
+    <button id="nextSongBtn">▶</button>
+  </div>
+  <div id="styles"></div>
+  <div id="tempoRow">
+    <button class="tempo-btn" id="bpmDown">−</button>
+    <div id="bpmDisplay">110<small>BPM</small></div>
+    <button class="tempo-btn" id="bpmUp">+</button>
+    <input type="range" id="tempoSlider" min="40" max="220" value="110">
+    <button id="tapBtn">TAP</button>
+  </div>
+  <div id="optsRow">
+    <label>Intro
+      <select id="introSelect">
+        <option value="count1">1 maat aftellen</option>
+        <option value="count2">2 maten aftellen</option>
+        <option value="fill">Fill als intro</option>
+        <option value="direct">Direct starten</option>
+      </select>
+    </label>
+    <label id="swingLabel">Swing
+      <input type="range" id="swingSlider" min="0" max="100" step="5" value="0">
+      <span id="swingVal">0%</span>
+    </label>
+  </div>
+  <div id="beatRow"></div>
+  <div id="statusLine">Klaar — druk op start</div>
+  <div id="controls">
+    <button id="mainBtn">START</button>
+    <button id="fillBtn">FILL</button>
+    <button id="partBtn">DEEL A → B</button>
+  </div>
+  <footer>Pedaal/toetsen: spatie of PgDn = start·stop &nbsp;·&nbsp; PgUp of F = fill &nbsp;·&nbsp; B = deel &nbsp;·&nbsp; N/P = volgend/vorig nummer &nbsp;·&nbsp; ↑↓ = tempo</footer>
+</main>
+
+<main id="view-setlist" hidden>
+  <div id="setlistRows"></div>
+  <form id="addSongForm">
+    <input id="songNameInput" placeholder="Naam nummer" required maxlength="40">
+    <select id="songStyle"></select>
+    <input id="songBpm" type="number" min="40" max="220" title="BPM">
+    <button type="submit">+ Toevoegen</button>
+  </form>
+  <p class="hint">Tik een nummer aan om het in de speler te laden. Volgorde wijzigen met ▲▼.</p>
+</main>
+
+<main id="view-editor" hidden>
+  <div class="ed-row">
+    <select id="edSource"></select>
+    <button id="edLoad">Laden</button>
+    <button id="edDelete" hidden>Verwijder</button>
+  </div>
+  <div class="ed-row">
+    <input id="edName" placeholder="Naam groove" maxlength="24">
+    <label>Tellen <select id="edBeats"></select></label>
+    <label>Verdeling
+      <select id="edSpb">
+        <option value="2">8sten (x/4)</option>
+        <option value="3">triolen (x/8)</option>
+        <option value="4">16den (x/4)</option>
+      </select>
+    </label>
+    <label>BPM <input id="edBpm" type="number" min="40" max="220"></label>
+  </div>
+  <div class="ed-row" id="edParts">
+    <button data-part="A" class="active">Deel A</button>
+    <button data-part="B">Deel B</button>
+    <button data-part="fill">Fill</button>
+  </div>
+  <div id="edGridWrap"><div id="edGrid"></div></div>
+  <div class="ed-row">
+    <button id="edPreview">▶ Beluister</button>
+    <button id="edSave">💾 Opslaan</button>
+    <span id="edMsg"></span>
+  </div>
+  <p class="hint">Tik op een vakje voor zacht → hard → uit. Wijzigingen klinken direct mee tijdens het beluisteren.</p>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
