@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FolkBeat — Electribe-mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1c20;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+    padding: 24px; gap: 16px;
+  }
+  #skinBar { display: flex; gap: 10px; align-items: center; color: #888; font-size: 13px; letter-spacing: 1px; }
+  #skinBar button {
+    padding: 6px 14px; border-radius: 6px; border: 1px solid #444; background: #26282e;
+    color: #ccc; cursor: pointer; font-size: 13px; letter-spacing: 1px;
+  }
+  #skinBar button.active { background: #c0392b; border-color: #c0392b; color: #fff; }
+
+  /* ============ KLEURSTELLINGEN ============ */
+  .device {
+    /* ES·F : zilver + petrol (ES-1) */
+    --case1: #d8dade; --case2: #a8acb4; --case3: #83878f;
+    --panel: #2e6b72; --panel-edge: #1d4a50;
+    --ink: #1c2226;            /* zeefdruk op case */
+    --ink-panel: #e8f2f2;      /* zeefdruk op panel */
+    --pad1: #e8e9ec; --pad2: #b9bcc4;          /* rubber pads */
+    --padpink1: #f2c7cd; --padpink2: #d898a2;  /* roze pads */
+    --btn1: #f4f5f7; --btn2: #c9ccd3;
+    --led-off: #5a1013; --led-on: #ff3326;
+    --lcd-bg: #101b12; --lcd-fg: #7dff9a;
+  }
+  .device.er {
+    /* ER·F : crème + rood (ER-1) */
+    --case1: #e6e2d4; --case2: #c9c4b2; --case3: #a29d8b;
+    --panel: #b13038; --panel-edge: #7d1f26;
+    --ink: #23201a;
+    --ink-panel: #f7e8e4;
+    --pad1: #efece0; --pad2: #cbc6b4;
+    --padpink1: #f2c7cd; --padpink2: #d898a2;
+    --led-off: #5a1013; --led-on: #ff3326;
+    --lcd-bg: #101b12; --lcd-fg: #7dff9a;
+  }
+
+  /* ============ BEHUIZING ============ */
+  .device {
+    width: 1080px; max-width: 96vw;
+    border-radius: 22px;
+    background:
+      linear-gradient(160deg, var(--case1) 0%, var(--case2) 55%, var(--case3) 100%);
+    box-shadow:
+      inset 0 2px 3px rgba(255,255,255,.75),
+      inset 0 -4px 8px rgba(0,0,0,.35),
+      0 18px 42px rgba(0,0,0,.6);
+    padding: 20px 26px 18px;
+    position: relative;
+    color: var(--ink);
+    user-select: none;
+  }
+  .screw {
+    position: absolute; width: 15px; height: 15px; border-radius: 50%;
+    background: radial-gradient(circle at 34% 30%, #f2f2f2, #9a9ea6 55%, #565a62);
+    box-shadow: inset 0 -1px 2px rgba(0,0,0,.5), 0 1px 1px rgba(255,255,255,.5);
+  }
+  .screw::after {
+    content: ""; position: absolute; left: 2px; right: 2px; top: 6.5px; height: 2px;
+    background: rgba(40,40,45,.75); transform: rotate(33deg); border-radius: 1px;
+  }
+  .screw.tl { top: 10px; left: 12px; } .screw.tr { top: 10px; right: 12px; }
+  .screw.bl { bottom: 10px; left: 12px; } .screw.br { bottom: 10px; right: 12px; }
+
+  /* ============ TYPOGRAFIE / SECTIES ============ */
+  .sec {
+    border: 1px solid color-mix(in srgb, var(--ink) 55%, transparent);
+    border-radius: 6px; position: relative; padding: 14px 12px 10px;
+  }
+  .sec > h3 {
+    position: absolute; top: -8px; left: 8px;
+    background: inherit;
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    padding: 0 6px; line-height: 14px;
+    background: linear-gradient(160deg, var(--case1), var(--case2));
+    border-radius: 3px;
+  }
+  .lbl { font-size: 9px; font-weight: 700; letter-spacing: 1.2px; text-align: center; }
+
+  /* ============ TOPSTRIP MET LOGO ============ */
+  .topstrip {
+    display: flex; align-items: center; gap: 18px;
+    background: linear-gradient(180deg, #23262b, #15171b);
+    border-radius: 8px; padding: 10px 16px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 1px rgba(255,255,255,.5);
+    margin: 4px 6px 18px;
+  }
+  .logo { display: flex; gap: 3px; align-items: center; }
+  .logo b {
+    display: inline-block; width: 24px; height: 26px; line-height: 26px;
+    background: #e8e9ec; color: #15171b; text-align: center;
+    font-size: 17px; font-weight: 900; border-radius: 3px;
+  }
+  .logo .dot {
+    width: 12px; height: 12px; border-radius: 50%; margin: 0 3px;
+    background: radial-gradient(circle at 35% 30%, #ff8a7a, #c0392b);
+  }
+  .logo b.accent { background: var(--panel); color: #fff; }
+  .sub { color: #b8bcc6; font-size: 11px; letter-spacing: 3px; font-weight: 700; }
+  .sub em { color: #7d838f; font-style: normal; letter-spacing: 1.5px; font-weight: 400; display: block; font-size: 9px; margin-top: 2px;}
+  .topstrip .right { margin-left: auto; display: flex; align-items: center; gap: 14px; color: #7d838f; font-size: 9px; letter-spacing: 1.5px; }
+  .jack { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #666, #1a1a1a 60%); box-shadow: 0 0 0 3px #3a3d44, 0 0 0 4px #14161a; }
+
+  /* ============ HOOFDGRID ============ */
+  .maingrid { display: grid; grid-template-columns: 170px 1fr 300px; gap: 16px; margin-bottom: 16px; }
+
+  /* ---- knoppen (draaiknoppen) ---- */
+  .knobwrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .knob {
+    width: 58px; height: 58px; border-radius: 50%;
+    background:
+      radial-gradient(circle at 38% 32%, #f8f9fa, #c3c7cf 55%, #878b94 100%);
+    box-shadow: inset 0 -2px 4px rgba(0,0,0,.4), inset 0 2px 3px rgba(255,255,255,.8), 0 3px 6px rgba(0,0,0,.4);
+    position: relative;
+  }
+  .knob::before { /* wijzer */
+    content: ""; position: absolute; left: 50%; top: 5px; width: 3px; height: 20px;
+    background: #22262b; border-radius: 2px; transform-origin: 50% 24px;
+    transform: translateX(-50%) rotate(var(--rot, 0deg));
+  }
+  .knob.small { width: 46px; height: 46px; }
+  .knob.small::before { height: 16px; transform-origin: 50% 18px; }
+  .ticks { font-size: 8px; letter-spacing: .5px; display: flex; justify-content: space-between; width: 74px; margin-top: -4px; opacity: .8; }
+
+  /* ---- LED BPM-display ---- */
+  .display {
+    background: linear-gradient(180deg, #17090a, #240b0c 60%, #17090a);
+    border-radius: 8px; padding: 10px 18px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,.9), 0 1px 1px rgba(255,255,255,.55);
+    display: flex; align-items: baseline; justify-content: center; gap: 4px;
+  }
+  .seg { display: inline-flex; gap: 7px; }
+  .digit { position: relative; width: 34px; height: 58px; }
+  .digit i {
+    position: absolute; background: var(--led-on);
+    box-shadow: 0 0 8px rgba(255,60,40,.85), 0 0 18px rgba(255,60,40,.4);
+    border-radius: 2px; opacity: .12;
+  }
+  .digit i.on { opacity: 1; }
+  .digit .a { top: 0; left: 5px; right: 5px; height: 6px; }
+  .digit .g { top: 26px; left: 5px; right: 5px; height: 6px; }
+  .digit .d { bottom: 0; left: 5px; right: 5px; height: 6px; }
+  .digit .f { top: 4px; left: 0; width: 6px; height: 22px; }
+  .digit .b { top: 4px; right: 0; width: 6px; height: 22px; }
+  .digit .e { bottom: 4px; left: 0; width: 6px; height: 22px; }
+  .digit .c { bottom: 4px; right: 0; width: 6px; height: 22px; }
+  .dp { width: 7px; height: 7px; border-radius: 50%; background: var(--led-on); box-shadow: 0 0 8px rgba(255,60,40,.8); align-self: flex-end; margin-bottom: 2px; }
+
+  .bpmzone { display: flex; align-items: center; gap: 18px; justify-content: center; }
+
+  /* ---- grote jog-dial ---- */
+  .dial {
+    width: 96px; height: 96px; border-radius: 50%;
+    background: radial-gradient(circle at 42% 35%, #dcdee2, #aeb2ba 60%, #8b8f98);
+    box-shadow: inset 0 -3px 6px rgba(0,0,0,.45), inset 0 3px 4px rgba(255,255,255,.7), 0 4px 9px rgba(0,0,0,.45);
+    position: relative;
+  }
+  .dial::after {
+    content: ""; position: absolute; inset: 26px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #f3f4f6, #b9bdc5 70%);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,.9), inset 0 -2px 3px rgba(0,0,0,.3);
+  }
+  .dial::before {
+    content: ""; position: absolute; top: 8px; left: 50%; width: 4px; height: 12px; z-index: 1;
+    background: #22262b; border-radius: 2px; transform: translateX(-50%);
+  }
+
+  /* ---- TAP / kleine drukknoppen met LED ---- */
+  .pushbtn {
+    background: linear-gradient(180deg, var(--btn1), var(--btn2));
+    border: 1px solid rgba(0,0,0,.35); border-radius: 5px;
+    box-shadow: 0 2px 0 rgba(0,0,0,.35), inset 0 1px 1px rgba(255,255,255,.9);
+    padding: 8px 12px; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    color: #22262b; text-align: center; cursor: pointer;
+  }
+  .pushbtn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+  .ledbtn { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .led {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--led-off); box-shadow: inset 0 1px 1px rgba(0,0,0,.6);
+  }
+  .led.on { background: var(--led-on); box-shadow: 0 0 7px rgba(255,60,40,.9); }
+
+  /* ---- gekleurd panel (petrol/rood) ---- */
+  .panel {
+    background: linear-gradient(170deg, color-mix(in srgb, var(--panel) 88%, white), var(--panel) 40%, var(--panel-edge));
+    border-radius: 10px;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,.35), inset 0 -3px 6px rgba(0,0,0,.35), 0 1px 1px rgba(255,255,255,.5);
+    color: var(--ink-panel);
+    padding: 14px;
+  }
+  .panel .sec { border-color: color-mix(in srgb, var(--ink-panel) 60%, transparent); }
+  .panel .sec > h3 { background: var(--panel); color: var(--ink-panel); }
+  .panel .lbl { color: var(--ink-panel); }
+
+  /* ---- groove-knoppen ---- */
+  .groovegrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .groove {
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+  }
+  .groove .pushbtn { width: 100%; padding: 10px 4px 8px; font-size: 10px; }
+  .groove small { font-size: 8px; letter-spacing: 1px; opacity: .85; }
+
+  /* ---- LCD setlist ---- */
+  .lcd {
+    background: var(--lcd-bg); color: var(--lcd-fg);
+    font-family: "Courier New", monospace; font-weight: 700; font-size: 15px; letter-spacing: 2px;
+    border-radius: 5px; padding: 8px 12px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.9), 0 1px 1px rgba(255,255,255,.4);
+    text-shadow: 0 0 6px rgba(125,255,154,.6);
+    white-space: nowrap; overflow: hidden;
+  }
+  .lcd small { display: block; font-size: 9px; letter-spacing: 1px; opacity: .7; }
+
+  /* ---- transport & pads ---- */
+  .bottomgrid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: stretch; }
+  .transport { display: flex; gap: 10px; align-items: center; }
+  .bigbtn {
+    flex: 1; height: 74px; border-radius: 8px;
+    background: linear-gradient(180deg, var(--btn1), var(--btn2));
+    border: 1px solid rgba(0,0,0,.4);
+    box-shadow: 0 3px 0 rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.9);
+    font-size: 20px; font-weight: 900; color: #22262b; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  }
+  .bigbtn small { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; }
+  .bigbtn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+  .bigbtn.pink { background: linear-gradient(180deg, var(--padpink1), var(--padpink2)); }
+
+  .steps { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+  .stepkey { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .stepkey .pad {
+    width: 100%; height: 58px; border-radius: 6px; cursor: pointer;
+    background: linear-gradient(180deg, var(--pad1), var(--pad2));
+    border: 1px solid rgba(0,0,0,.35);
+    box-shadow: 0 3px 0 rgba(0,0,0,.35), inset 0 1px 2px rgba(255,255,255,.85);
+  }
+  .stepkey.accent .pad { background: linear-gradient(180deg, var(--padpink1), var(--padpink2)); }
+  .stepkey .pad:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: 14px; padding: 0 8px; font-size: 9px; letter-spacing: 2px; opacity: .75;
+  }
+  .knobrow { display: flex; gap: 18px; justify-content: center; }
+
+  .intro4 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .intro4 .pushbtn { font-size: 8.5px; padding: 7px 4px; }
+</style>
+</head>
+<body>
+
+<div id="skinBar">
+  KLEURSTELLING:
+  <button id="btnES" class="active">ES·F — zilver/petrol</button>
+  <button id="btnER">ER·F — crème/rood</button>
+</div>
+
+<div class="device" id="device">
+  <div class="screw tl"></div><div class="screw tr"></div>
+  <div class="screw bl"></div><div class="screw br"></div>
+
+  <!-- logo-strip -->
+  <div class="topstrip">
+    <div class="logo">
+      <b>F</b><b>O</b><b>L</b><b>K</b><span class="dot"></span><b class="accent">B</b><b>E</b><b>A</b><b>T</b>
+    </div>
+    <div class="sub">RHYTHM COMPANION<em>FOLK PRODUCTION STATION · PWA</em></div>
+    <div class="right">
+      <span>PHONES</span><div class="jack"></div>
+      <span>OUTPUT</span><div class="jack"></div><div class="jack"></div>
+    </div>
+  </div>
+
+  <div class="maingrid">
+    <!-- links: volume + kit -->
+    <div style="display:flex; flex-direction:column; gap:14px;">
+      <div class="sec" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+        <h3>MASTER VOLUME</h3>
+        <div class="knobwrap">
+          <div class="knob" style="--rot: 40deg;"></div>
+          <div class="ticks"><span>MIN</span><span>MAX</span></div>
+        </div>
+      </div>
+      <div class="sec" style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;">
+        <h3>DRUMKIT</h3>
+        <div class="knobwrap">
+          <div class="knob" style="--rot: -60deg;"></div>
+          <div class="ticks"><span>AKOEST</span><span>PERC</span></div>
+        </div>
+        <div class="lbl" style="opacity:.8">AKOEST · DROOG · STUDIO<br>VINTAGE · ROCK · BODHRÁN · SYNTH</div>
+      </div>
+    </div>
+
+    <!-- midden: BPM display + dial + tap -->
+    <div class="sec" style="display:flex; flex-direction:column; justify-content:center; gap:14px;">
+      <h3>TEMPO</h3>
+      <div class="bpmzone">
+        <div class="display">
+          <span class="seg" id="bpmseg"></span>
+          <span class="dp"></span>
+        </div>
+        <div class="dial" title="draai voor tempo"></div>
+        <div class="ledbtn">
+          <span class="led on" id="tapled"></span>
+          <button class="pushbtn" style="padding:16px 20px; font-size:13px;">TAP</button>
+        </div>
+      </div>
+      <div class="knobrow">
+        <div class="knobwrap">
+          <div class="knob small" style="--rot: -35deg;"></div>
+          <div class="lbl">SWING</div>
+        </div>
+        <div class="sec" style="padding:10px 10px 8px;">
+          <h3>INTRO</h3>
+          <div class="intro4">
+            <div class="ledbtn"><span class="led on"></span><button class="pushbtn">1 MAAT</button></div>
+            <div class="ledbtn"><span class="led"></span><button class="pushbtn">2 MATEN</button></div>
+            <div class="ledbtn"><span class="led"></span><button class="pushbtn">FILL</button></div>
+            <div class="ledbtn"><span class="led"></span><button class="pushbtn">DIRECT</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- rechts: gekleurd panel met grooves + setlist -->
+    <div class="panel" style="display:flex; flex-direction:column; gap:14px;">
+      <div class="sec">
+        <h3>GROOVE SELECT</h3>
+        <div class="groovegrid" id="grooves"></div>
+      </div>
+      <div class="sec">
+        <h3>SONG PART</h3>
+        <div style="display:flex; gap:8px;">
+          <div class="ledbtn" style="flex:1"><span class="led on"></span><button class="pushbtn" style="width:100%">A</button></div>
+          <div class="ledbtn" style="flex:1"><span class="led"></span><button class="pushbtn" style="width:100%">B</button></div>
+        </div>
+      </div>
+      <div class="sec" style="flex:1;">
+        <h3>SETLIST</h3>
+        <div class="lcd">01·REEL VAN THIJS<small>REEL 4/4 · 108 BPM · SWING 20</small></div>
+        <div style="display:flex; gap:8px; margin-top:8px;">
+          <button class="pushbtn" style="flex:1">◀ PREV</button>
+          <button class="pushbtn" style="flex:1">NEXT ▶</button>
+          <button class="pushbtn" style="flex:1">💾 SAVE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- onderste rij: transport + stappen -->
+  <div class="bottomgrid">
+    <div class="sec">
+      <h3>TRANSPORT</h3>
+      <div class="transport">
+        <button class="bigbtn">■<small>STOP / OUTRO</small></button>
+        <button class="bigbtn">▶<small>START</small></button>
+        <button class="bigbtn pink">FILL<small>PGUP / F</small></button>
+      </div>
+    </div>
+    <div class="sec">
+      <h3>BEAT — REEL 4/4</h3>
+      <div class="steps" id="steps"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span>FOLKBEAT ES·F</span>
+    <span>PEDAL: PGDN=START·STOP · PGUP=FILL · B=PART</span>
+    <span>DESIGN MOCKUP · GEEN FUNCTIE</span>
+  </div>
+</div>
+
+<script>
+// 7-segment BPM "110"
+const SEGMAP = { "0":"abcdef", "1":"bc", "2":"abged", "3":"abgcd", "4":"fgbc", "5":"afgcd", "6":"afgedc", "7":"abc", "8":"abcdefg", "9":"abcfgd" };
+function segDigit(ch) {
+  const d = document.createElement("span");
+  d.className = "digit";
+  for (const s of "abcdefg") {
+    const i = document.createElement("i");
+    i.className = s + (SEGMAP[ch]?.includes(s) ? " on" : "");
+    d.appendChild(i);
+  }
+  return d;
+}
+const bpmseg = document.getElementById("bpmseg");
+for (const ch of "110") bpmseg.appendChild(segDigit(ch));
+
+// grooves
+const GROOVES = [["REEL","4/4",true],["JIG","6/8",false],["WALS","3/4",false],["POLKA","2/4",false],["MAZUR","3/4",false],["SCOT","4/4",false]];
+const gwrap = document.getElementById("grooves");
+for (const [n, sig, on] of GROOVES) {
+  const w = document.createElement("div");
+  w.className = "groove ledbtn";
+  w.innerHTML = `<span class="led${on ? " on" : ""}"></span><button class="pushbtn">${n}</button><small>${sig}</small>`;
+  gwrap.appendChild(w);
+}
+
+// stappen (8 achtsten van een reel-maat), tel 1 roze + LED aan
+const swrap = document.getElementById("steps");
+for (let i = 0; i < 8; i++) {
+  const k = document.createElement("div");
+  k.className = "stepkey" + (i % 2 === 0 ? " accent" : "");
+  k.innerHTML = `<span class="led${i === 0 ? " on" : ""}"></span><div class="pad"></div><span class="lbl">${i % 2 === 0 ? (i / 2 + 1) : "·"}</span>`;
+  swrap.appendChild(k);
+}
+
+// kleurstelling wisselen
+const device = document.getElementById("device");
+const btnES = document.getElementById("btnES"), btnER = document.getElementById("btnER");
+btnES.onclick = () => { device.classList.remove("er"); btnES.classList.add("active"); btnER.classList.remove("active"); };
+btnER.onclick = () => { device.classList.add("er"); btnER.classList.add("active"); btnES.classList.remove("active"); };
+</script>
+</body>
+</html>

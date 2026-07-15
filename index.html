@@ -5,15 +5,29 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#12141a">
+<meta name="theme-color" content="#9ba0a8">
 <link rel="manifest" href="manifest.webmanifest">
 <title>FolkBeat</title>
 <style>
+  /* ================= ELECTRIBE ES-1 TOKENS ================= */
+  :root {
+    --case1: #d8dade; --case2: #b2b6be; --case3: #8b8f98;
+    --panel: #2e6b72; --panel-hi: #3c828a; --panel-edge: #1d4a50;
+    --ink: #22262b;              /* zeefdruk op case */
+    --ink-panel: #e8f2f2;        /* zeefdruk op panel */
+    --pad1: #eceded; --pad2: #b9bcc4;
+    --pink1: #f2c7cd; --pink2: #d898a2;
+    --btn1: #f4f5f7; --btn2: #c9ccd3;
+    --led-off: #571114; --led-on: #ff3326;
+    --lcd-bg: #0f1a11; --lcd-fg: #7dff9a;
+    --strip: #191b1f;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; }
   body {
-    background: #12141a; color: #e8e6e0;
-    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: linear-gradient(155deg, var(--case1) 0%, var(--case2) 55%, var(--case3) 100%) fixed;
+    color: var(--ink);
+    font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
     display: flex; flex-direction: column;
     user-select: none; -webkit-user-select: none;
     touch-action: manipulation;
@@ -21,262 +35,445 @@
   }
   button, input, select { font-family: inherit; }
 
+  /* schroeven */
+  .screw {
+    position: fixed; width: 14px; height: 14px; border-radius: 50%; z-index: 50; pointer-events: none;
+    background: radial-gradient(circle at 34% 30%, #f2f2f2, #9a9ea6 55%, #565a62);
+    box-shadow: inset 0 -1px 2px rgba(0,0,0,.5), 0 1px 1px rgba(255,255,255,.5);
+  }
+  .screw::after {
+    content: ""; position: absolute; left: 2px; right: 2px; top: 6px; height: 2px;
+    background: rgba(40,40,45,.75); transform: rotate(33deg); border-radius: 1px;
+  }
+  .screw.tl { top: 6px; left: 7px; } .screw.tr { top: 6px; right: 7px; }
+  .screw.bl { bottom: 6px; left: 7px; } .screw.br { bottom: 6px; right: 7px; }
+
+  /* ================= TOPSTRIP ================= */
   header {
-    display: flex; align-items: center; gap: 14px;
-    padding: 8px 16px; border-bottom: 1px solid #262a35; flex-shrink: 0;
+    display: flex; align-items: center; gap: 12px; flex-shrink: 0;
+    background: linear-gradient(180deg, #24262c, var(--strip));
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.8), 0 1px 1px rgba(255,255,255,.55);
+    border-radius: 8px;
+    margin: 12px 14px 8px; padding: 8px 12px;
   }
-  header h1 { font-size: 17px; letter-spacing: 2px; color: #f0a848; margin-right: 4px; }
-  nav#tabs { display: flex; gap: 6px; flex: 1; }
-  nav#tabs button {
-    padding: 8px 14px; border-radius: 10px; border: none; cursor: pointer;
-    background: transparent; color: #8a8fa0; font-size: 15px; font-weight: 600;
+  .logo { display: flex; gap: 2px; align-items: center; flex-shrink: 0; }
+  .logo b {
+    display: inline-block; width: 17px; height: 20px; line-height: 20px;
+    background: #e8e9ec; color: #15171b; text-align: center;
+    font-size: 13px; font-weight: 900; border-radius: 2px;
   }
-  nav#tabs button.active { background: #262a35; color: #fff; }
+  .logo .dot {
+    width: 9px; height: 9px; border-radius: 50%; margin: 0 2px;
+    background: radial-gradient(circle at 35% 30%, #ff8a7a, #c0392b);
+  }
+  .logo b.accent { background: var(--panel-hi); color: #fff; }
+
+  nav#tabs { display: flex; gap: 8px; margin-left: 6px; }
+  nav#tabs .ledbtn { gap: 3px; }
+  nav#tabs .pushbtn { font-size: 9px; padding: 5px 10px; }
+
+  #kitWrap { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  #kitWrap .mini-lbl { color: #8a8fa0; font-size: 8px; letter-spacing: 1.5px; font-weight: 700; }
   #kitSelect {
-    padding: 7px 8px; border-radius: 10px; border: 2px solid #2a2f3d;
-    background: #1d212c; color: #e8e6e0; font-size: 14px; max-width: 130px;
+    background: var(--lcd-bg); color: var(--lcd-fg);
+    font-family: "Courier New", monospace; font-weight: 700; font-size: 12px; letter-spacing: 1px;
+    border: none; border-radius: 4px; padding: 6px 6px;
+    box-shadow: inset 0 2px 5px rgba(0,0,0,.9);
+    text-shadow: 0 0 5px rgba(125,255,154,.5); max-width: 140px;
   }
-  #sigDisplay { font-size: 15px; color: #8a8fa0; }
+  #sigDisplay {
+    color: #b8bcc6; font-size: 12px; font-weight: 700; letter-spacing: 1px; flex-shrink: 0;
+  }
 
-  main { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  /* ================= ALGEMENE HARDWARE-ELEMENTEN ================= */
+  .sec {
+    border: 1px solid color-mix(in srgb, var(--ink) 50%, transparent);
+    border-radius: 6px; position: relative; padding: 12px 10px 8px;
+  }
+  .sec > h3 {
+    position: absolute; top: -7px; left: 8px;
+    font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+    padding: 0 6px; line-height: 13px; border-radius: 3px; color: var(--ink);
+    background: linear-gradient(180deg, var(--case1), var(--case2));
+  }
+  .lbl { font-size: 8.5px; font-weight: 700; letter-spacing: 1.2px; text-align: center; color: var(--ink); }
+
+  .pushbtn {
+    background: linear-gradient(180deg, var(--btn1), var(--btn2));
+    border: 1px solid rgba(0,0,0,.35); border-radius: 5px;
+    box-shadow: 0 2px 0 rgba(0,0,0,.35), inset 0 1px 1px rgba(255,255,255,.9);
+    padding: 7px 10px; font-size: 10px; font-weight: 700; letter-spacing: 1px;
+    color: #22262b; text-align: center; cursor: pointer; white-space: nowrap;
+  }
+  .pushbtn:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+  .ledbtn { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .led {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    background: var(--led-off); box-shadow: inset 0 1px 1px rgba(0,0,0,.6);
+  }
+  .led.on { background: var(--led-on); box-shadow: 0 0 7px rgba(255,60,40,.9); }
+  @keyframes ledblink { 50% { background: var(--led-on); box-shadow: 0 0 7px rgba(255,60,40,.9); } }
+  .led.blink { animation: ledblink 0.45s steps(1) infinite; }
+
+  .knob {
+    width: 52px; height: 52px; border-radius: 50%; cursor: ns-resize; touch-action: none;
+    background: radial-gradient(circle at 38% 32%, #f8f9fa, #c3c7cf 55%, #878b94 100%);
+    box-shadow: inset 0 -2px 4px rgba(0,0,0,.4), inset 0 2px 3px rgba(255,255,255,.8), 0 3px 6px rgba(0,0,0,.4);
+    position: relative; flex-shrink: 0;
+  }
+  .knob::before {
+    content: ""; position: absolute; left: 50%; top: 5px; width: 3px; height: 17px;
+    background: #22262b; border-radius: 2px; transform-origin: 50% 21px;
+    transform: translateX(-50%) rotate(var(--rot, 0deg));
+  }
+
+  .lcd {
+    background: var(--lcd-bg); color: var(--lcd-fg);
+    font-family: "Courier New", monospace; font-weight: 700; letter-spacing: 1.5px;
+    border-radius: 5px; padding: 7px 10px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.9), 0 1px 1px rgba(255,255,255,.4);
+    text-shadow: 0 0 6px rgba(125,255,154,.55);
+    white-space: nowrap; overflow: hidden;
+  }
+
+  main { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding: 6px 14px 4px; gap: 10px; }
   main[hidden] { display: none; }
+  footer { padding: 2px 16px 8px; text-align: center; font-size: 9px; letter-spacing: 1px; color: color-mix(in srgb, var(--ink) 60%, transparent); flex-shrink: 0; }
 
-  /* ---------- SPELER ---------- */
-  #songBar {
-    display: flex; align-items: center; gap: 10px; padding: 8px 16px 0;
-  }
+  /* ================= SPELER ================= */
+  #songBar { display: flex; align-items: center; gap: 8px; }
   #songBar[hidden] { display: none; }
-  #saveSongBtn { border-color: #f0a848 !important; }
+  #songBar .pushbtn { padding: 9px 12px; }
+  #songInfo.lcd { flex: 1; font-size: 14px; }
+  #songInfo small { display: block; font-size: 9px; letter-spacing: 1px; opacity: .75; }
   #saveSongBtn[hidden] { display: none; }
-  #songBar button {
-    width: 44px; height: 44px; border-radius: 10px; font-size: 18px; cursor: pointer;
-    background: #1d212c; color: #e8e6e0; border: 2px solid #2a2f3d;
-  }
-  #songInfo { flex: 1; text-align: center; line-height: 1.2; }
-  #songInfo b { font-size: 17px; }
-  #songInfo small { display: block; color: #8a8fa0; }
 
-  #styles {
-    display: flex; gap: 8px; overflow-x: auto; padding: 12px 16px;
-    flex-shrink: 0; scrollbar-width: none;
+  /* grooves op petrol paneel */
+  #groovePanel {
+    background: linear-gradient(170deg, var(--panel-hi), var(--panel) 40%, var(--panel-edge));
+    border-radius: 9px; padding: 12px 10px 8px; position: relative; flex-shrink: 0;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,.35), inset 0 -3px 6px rgba(0,0,0,.35), 0 1px 1px rgba(255,255,255,.5);
   }
+  #groovePanel > h3 {
+    position: absolute; top: -7px; left: 10px; font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+    padding: 0 6px; line-height: 13px; border-radius: 3px; color: var(--ink-panel); background: var(--panel);
+  }
+  #styles { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
   #styles::-webkit-scrollbar { display: none; }
-  .style-btn {
-    flex-shrink: 0; padding: 12px 18px; border-radius: 12px;
-    background: #1d212c; color: #b8bcc8; border: 2px solid #2a2f3d;
-    font-size: 16px; font-weight: 600; cursor: pointer;
-  }
-  .style-btn.active { background: #f0a848; border-color: #f0a848; color: #12141a; }
-  .style-btn .custom-mark { color: #ff6b4a; }
-  .style-btn.active .custom-mark { color: #12141a; }
+  .style-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; cursor: pointer; background: none; border: none; }
+  .style-btn .pushbtn { width: 100%; pointer-events: none; }
+  .style-btn small { font-size: 8px; letter-spacing: 1px; color: var(--ink-panel); opacity: .85; }
+  .style-btn .custom-mark { color: #ffd08a; }
 
-  #tempoRow { display: flex; align-items: center; gap: 10px; padding: 4px 16px 10px; }
-  #bpmDisplay {
-    font-size: 44px; font-weight: 800; min-width: 110px; text-align: center;
-    font-variant-numeric: tabular-nums; color: #fff;
-  }
-  #bpmDisplay small { font-size: 14px; font-weight: 500; color: #8a8fa0; display: block; }
-  .tempo-btn {
-    width: 54px; height: 54px; border-radius: 50%; font-size: 26px; font-weight: 700;
-    background: #1d212c; color: #e8e6e0; border: 2px solid #2a2f3d; cursor: pointer;
-  }
-  .tempo-btn:active { background: #2a2f3d; }
-  #tempoSlider { flex: 1; accent-color: #f0a848; height: 40px; }
-  #tapBtn {
-    padding: 0 18px; height: 54px; border-radius: 12px; font-size: 16px; font-weight: 700;
-    background: #1d212c; color: #e8e6e0; border: 2px solid #2a2f3d; cursor: pointer;
-  }
-  #tapBtn:active { background: #f0a848; color: #12141a; }
+  /* tempo-zone */
+  #tempoZone { display: flex; gap: 14px; align-items: stretch; flex-wrap: wrap; }
+  #tempoZone .sec { display: flex; align-items: center; gap: 14px; justify-content: center; }
+  #tempoSec { flex: 2; min-width: 300px; }
+  #perfSec { flex: 1.4; min-width: 260px; }
 
-  #optsRow {
-    display: flex; align-items: center; gap: 18px; padding: 0 16px 6px; flex-wrap: wrap;
+  .display {
+    background: linear-gradient(180deg, #17090a, #240b0c 60%, #17090a);
+    border-radius: 8px; padding: 8px 14px;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,.9), 0 1px 1px rgba(255,255,255,.55);
+    display: flex; align-items: baseline; gap: 3px;
   }
-  #optsRow label { display: flex; align-items: center; gap: 8px; font-size: 14px; color: #8a8fa0; }
-  #optsRow select {
-    padding: 8px 10px; border-radius: 10px; border: 2px solid #2a2f3d;
-    background: #1d212c; color: #e8e6e0; font-size: 14px;
+  .seg { display: inline-flex; gap: 6px; }
+  .digit { position: relative; width: 26px; height: 46px; }
+  .digit i {
+    position: absolute; background: var(--led-on);
+    box-shadow: 0 0 7px rgba(255,60,40,.85), 0 0 14px rgba(255,60,40,.4);
+    border-radius: 2px; opacity: .1;
   }
-  #swingLabel { flex: 1; min-width: 220px; }
-  #swingSlider { flex: 1; accent-color: #f0a848; height: 32px; }
-  #swingVal { min-width: 42px; text-align: right; color: #e8e6e0; font-variant-numeric: tabular-nums; }
+  .digit i.on { opacity: 1; }
+  .digit .a { top: 0; left: 4px; right: 4px; height: 5px; }
+  .digit .g { top: 20.5px; left: 4px; right: 4px; height: 5px; }
+  .digit .d { bottom: 0; left: 4px; right: 4px; height: 5px; }
+  .digit .f { top: 3px; left: 0; width: 5px; height: 17px; }
+  .digit .b { top: 3px; right: 0; width: 5px; height: 17px; }
+  .digit .e { bottom: 3px; left: 0; width: 5px; height: 17px; }
+  .digit .c { bottom: 3px; right: 0; width: 5px; height: 17px; }
+  .dp { width: 6px; height: 6px; border-radius: 50%; background: var(--led-on); box-shadow: 0 0 7px rgba(255,60,40,.8); align-self: flex-end; margin-bottom: 1px; }
 
-  #beatRow { display: flex; justify-content: center; gap: 14px; padding: 10px 0 6px; min-height: 40px; }
-  .beat-dot { width: 26px; height: 26px; border-radius: 50%; background: #2a2f3d; transition: transform 0.05s; }
-  .beat-dot.on { background: #f0a848; transform: scale(1.35); }
-  .beat-dot.on.downbeat { background: #ff6b4a; }
-
-  #statusLine { text-align: center; font-size: 15px; color: #8a8fa0; min-height: 22px; padding-bottom: 4px; }
-  #statusLine .fill-flash { color: #ff6b4a; font-weight: 700; }
-
-  #controls {
-    flex: 1; display: grid; gap: 12px; padding: 8px 16px 16px;
-    grid-template-columns: 1fr 1fr; grid-template-rows: 2fr 1fr;
-    grid-template-areas: "main main" "fill part"; min-height: 0;
+  #dial {
+    width: 84px; height: 84px; border-radius: 50%; cursor: ns-resize; touch-action: none;
+    background: radial-gradient(circle at 42% 35%, #dcdee2, #aeb2ba 60%, #8b8f98);
+    box-shadow: inset 0 -3px 6px rgba(0,0,0,.45), inset 0 3px 4px rgba(255,255,255,.7), 0 4px 9px rgba(0,0,0,.45);
+    position: relative; flex-shrink: 0;
   }
-  #mainBtn {
-    grid-area: main; border-radius: 20px; border: none; cursor: pointer;
-    font-size: 34px; font-weight: 800; letter-spacing: 1px; background: #2ea866; color: #fff;
+  #dial::after {
+    content: ""; position: absolute; inset: 23px; border-radius: 50%;
+    background: radial-gradient(circle at 38% 32%, #f3f4f6, #b9bdc5 70%);
+    box-shadow: inset 0 1px 2px rgba(255,255,255,.9), inset 0 -2px 3px rgba(0,0,0,.3);
   }
-  #mainBtn.playing { background: #c0392b; }
-  #mainBtn.countin { background: #f0a848; color: #12141a; }
-  #mainBtn:active { filter: brightness(1.15); }
-  #fillBtn, #partBtn {
-    border-radius: 16px; border: 2px solid #2a2f3d; cursor: pointer;
-    font-size: 22px; font-weight: 700; background: #1d212c; color: #e8e6e0;
+  #dial::before {
+    content: ""; position: absolute; top: 7px; left: 50%; width: 4px; height: 11px; z-index: 1;
+    background: #22262b; border-radius: 2px;
+    transform-origin: 50% 35px; transform: translateX(-50%) rotate(var(--rot, 0deg));
   }
-  #fillBtn:active, #partBtn:active { background: #f0a848; color: #12141a; }
-  #fillBtn.queued, #partBtn.queued { border-color: #f0a848; color: #f0a848; }
+  #tapBtn { padding: 13px 16px; font-size: 12px; }
+  .bpmbtns { display: flex; flex-direction: column; gap: 6px; }
+  .bpmbtns .pushbtn { padding: 6px 10px; font-size: 12px; }
 
-  footer { padding: 6px 16px 12px; text-align: center; font-size: 12px; color: #565b6b; }
+  .knobwrap { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .knobwrap .val { font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--ink); opacity: .85; }
+  #introBtns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  #introBtns .pushbtn { font-size: 8px; padding: 6px 5px; width: 100%; }
+  #introBtns .ledbtn { gap: 3px; }
 
-  /* ---------- SETLIST ---------- */
-  #view-setlist { padding: 14px 16px; gap: 10px; overflow-y: auto; }
-  #setlistRows { display: flex; flex-direction: column; gap: 8px; }
+  /* zeefdruk-branding in de vrije ruimte */
+  #silk {
+    flex: 1; min-height: 0; display: flex; align-items: flex-end; justify-content: space-between;
+    font-size: 10px; font-weight: 700; letter-spacing: 3px; padding: 0 6px;
+    color: color-mix(in srgb, var(--ink) 40%, transparent);
+  }
+
+  /* step-keys (beat) — onderste rij, zoals op de hardware */
+  #beatSec { flex-shrink: 0; }
+  #beatRow { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+  .stepkey { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; }
+  .stepkey .pad {
+    width: 100%; height: clamp(38px, 8vh, 64px); border-radius: 5px;
+    background: linear-gradient(180deg, var(--pad1), var(--pad2));
+    border: 1px solid rgba(0,0,0,.35);
+    box-shadow: 0 2px 0 rgba(0,0,0,.35), inset 0 1px 2px rgba(255,255,255,.85);
+  }
+  .stepkey.accent .pad { background: linear-gradient(180deg, var(--pink1), var(--pink2)); }
+  .stepkey .lbl { min-height: 10px; }
+
+  #statusLine { font-size: 11px; text-align: center; }
+  #statusLine .fill-flash { color: #ffb0a6; }
+
+  /* transport */
+  #controls { display: flex; gap: 10px; height: clamp(88px, 17vh, 150px); flex-shrink: 0; }
+  .bigbtn {
+    flex: 1; border-radius: 8px; border: 1px solid rgba(0,0,0,.4); cursor: pointer;
+    background: linear-gradient(180deg, var(--btn1), var(--btn2));
+    box-shadow: 0 3px 0 rgba(0,0,0,.4), inset 0 1px 1px rgba(255,255,255,.9);
+    font-size: 19px; font-weight: 900; color: #22262b;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  }
+  .bigbtn small { font-size: 8.5px; font-weight: 700; letter-spacing: 1.5px; }
+  .bigbtn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+  .bigbtn .led { margin-bottom: 2px; }
+  .bigbtn.pink { background: linear-gradient(180deg, var(--pink1), var(--pink2)); }
+  #startBtn { flex: 1.6; }
+
+  /* ================= SETLIST ================= */
+  #view-setlist { overflow-y: auto; }
+  #setlistRows { display: flex; flex-direction: column; gap: 7px; }
   .song-row {
-    display: flex; align-items: center; gap: 8px;
-    background: #1d212c; border: 2px solid #2a2f3d; border-radius: 12px; padding: 10px 12px;
-    cursor: pointer;
+    display: flex; align-items: center; gap: 8px; cursor: pointer;
+    background: var(--lcd-bg); color: var(--lcd-fg);
+    font-family: "Courier New", monospace;
+    border-radius: 6px; padding: 8px 10px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.9), 0 1px 1px rgba(255,255,255,.4);
+    border: 1px solid transparent;
+    text-shadow: 0 0 5px rgba(125,255,154,.5);
   }
-  .song-row.current { border-color: #f0a848; }
-  .song-row .num { color: #565b6b; font-weight: 700; width: 24px; }
-  .song-row .info { flex: 1; line-height: 1.25; }
-  .song-row .info b { font-size: 16px; }
-  .song-row .info small { display: block; color: #8a8fa0; }
+  .song-row.current { border-color: var(--led-on); box-shadow: inset 0 2px 6px rgba(0,0,0,.9), 0 0 8px rgba(255,60,40,.35); }
+  .song-row .num { opacity: .6; font-weight: 700; width: 24px; }
+  .song-row .info { flex: 1; line-height: 1.3; min-width: 0; overflow: hidden; }
+  .song-row .info b { font-size: 14px; letter-spacing: 1px; }
+  .song-row .info small { display: block; font-size: 9px; letter-spacing: 1px; opacity: .7; }
   .song-row button {
-    width: 38px; height: 38px; border-radius: 8px; border: 1px solid #2a2f3d;
-    background: #262a35; color: #b8bcc8; font-size: 15px; cursor: pointer; flex-shrink: 0;
+    font-family: "Arial Narrow", Arial, sans-serif;
+    width: 34px; height: 34px; border-radius: 5px; flex-shrink: 0; cursor: pointer;
+    background: linear-gradient(180deg, var(--btn1), var(--btn2));
+    border: 1px solid rgba(0,0,0,.35); color: #22262b; font-size: 13px; font-weight: 700;
+    box-shadow: 0 2px 0 rgba(0,0,0,.35), inset 0 1px 1px rgba(255,255,255,.9);
+    text-shadow: none;
   }
-  .song-row button.del { color: #ff6b4a; }
-  .song-row.editing { border-color: #f0a848; cursor: default; flex-wrap: wrap; }
+  .song-row button:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+  .song-row button.del { color: #b13038; }
+  .song-row button.ok { background: linear-gradient(180deg, #bfe8c8, #7dbb8c); }
+  .song-row.editing { cursor: default; flex-wrap: wrap; }
   .song-row.editing input, .song-row.editing select {
-    padding: 9px 10px; border-radius: 8px; border: 2px solid #2a2f3d;
-    background: #12141a; color: #e8e6e0; font-size: 15px; min-width: 0;
+    font-family: "Courier New", monospace; font-weight: 700;
+    background: #0a120b; color: var(--lcd-fg); border: 1px solid rgba(125,255,154,.25);
+    border-radius: 4px; padding: 8px; font-size: 13px; min-width: 0;
   }
-  .song-row.editing .e-name { flex: 2 1 130px; }
-  .song-row.editing select { flex: 2 1 120px; }
-  .song-row.editing .e-bpm { width: 72px; }
-  .song-row.editing .e-swing { width: 64px; }
-  .song-row.editing button.ok { background: #2ea866; color: #fff; border-color: #2ea866; }
-  #addSongForm { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+  .song-row.editing .e-name { flex: 2 1 120px; }
+  .song-row.editing select { flex: 2 1 110px; }
+  .song-row.editing .e-bpm { width: 64px; }
+  .song-row.editing .e-swing { width: 58px; }
+
+  #addSongForm { display: flex; gap: 8px; flex-wrap: wrap; }
   #addSongForm input, #addSongForm select {
-    padding: 10px 12px; border-radius: 10px; border: 2px solid #2a2f3d;
-    background: #1d212c; color: #e8e6e0; font-size: 15px;
+    padding: 9px 10px; border-radius: 5px; border: 1px solid rgba(0,0,0,.4);
+    background: linear-gradient(180deg, #fdfdfe, #e4e6ea); color: #22262b; font-size: 13px;
+    box-shadow: inset 0 2px 3px rgba(0,0,0,.18);
   }
-  #songNameInput { flex: 2; min-width: 140px; }
-  #songStyle { flex: 2; min-width: 120px; }
-  #songBpm { width: 84px; }
-  #addSongForm button {
-    padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer;
-    background: #2ea866; color: #fff; font-size: 15px; font-weight: 700;
-  }
-  .hint { color: #565b6b; font-size: 13px; margin-top: 8px; }
+  #songNameInput { flex: 2; min-width: 130px; }
+  #songStyle { flex: 2; min-width: 110px; }
+  #songBpm { width: 76px; }
+  #addSongForm .pushbtn { font-size: 11px; padding: 9px 14px; }
+  .hint { font-size: 9.5px; letter-spacing: .5px; color: color-mix(in srgb, var(--ink) 65%, transparent); }
 
-  /* ---------- EDITOR ---------- */
-  #view-editor { padding: 12px 16px; gap: 10px; overflow-y: auto; }
+  /* ================= EDITOR ================= */
+  #view-editor { overflow-y: auto; }
   .ed-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .ed-row label { font-size: 13px; color: #8a8fa0; display: flex; align-items: center; gap: 6px; }
+  .ed-row label { font-size: 9px; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 5px; }
   .ed-row input, .ed-row select {
-    padding: 9px 10px; border-radius: 10px; border: 2px solid #2a2f3d;
-    background: #1d212c; color: #e8e6e0; font-size: 15px;
+    padding: 8px 9px; border-radius: 5px; border: 1px solid rgba(0,0,0,.4);
+    background: linear-gradient(180deg, #fdfdfe, #e4e6ea); color: #22262b; font-size: 13px;
+    box-shadow: inset 0 2px 3px rgba(0,0,0,.18);
   }
-  #edName { flex: 1; min-width: 130px; }
-  #edBpm { width: 74px; }
-  .ed-row button {
-    padding: 9px 16px; border-radius: 10px; border: 2px solid #2a2f3d; cursor: pointer;
-    background: #1d212c; color: #e8e6e0; font-size: 15px; font-weight: 600;
+  #edName { flex: 1; min-width: 120px; }
+  #edBpm { width: 66px; }
+  .ed-row .pushbtn { font-size: 10px; }
+  #edParts .pushbtn.active {
+    background: linear-gradient(180deg, var(--pink1), var(--pink2));
   }
-  #edParts button.active { background: #f0a848; border-color: #f0a848; color: #12141a; }
-  #edSave { background: #2ea866; border-color: #2ea866; color: #fff; }
-  #edPreview.on { background: #c0392b; border-color: #c0392b; color: #fff; }
-  #edDelete { color: #ff6b4a; }
-  #edMsg { font-size: 13px; color: #2ea866; }
+  #edSave { background: linear-gradient(180deg, #bfe8c8, #7dbb8c); }
+  #edPreview.on { background: linear-gradient(180deg, #f0a29b, #c95f56); color: #fff; }
+  #edDelete { color: #b13038; }
+  #edDelete[hidden] { display: none; }
+  #edMsg { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: #1e6b34; }
 
-  #edGridWrap { overflow-x: auto; }
-  #edGrid { display: grid; gap: 3px; width: max-content; }
-  .ed-label { font-size: 12px; color: #8a8fa0; padding-right: 8px; display: flex; align-items: center; height: 30px; white-space: nowrap; }
-  .ed-cell {
-    width: 30px; height: 30px; border-radius: 6px; background: #1d212c;
-    border: 1px solid #2a2f3d; cursor: pointer; position: relative;
+  #edGridWrap {
+    overflow-x: auto;
+    background: linear-gradient(170deg, var(--panel-hi), var(--panel) 40%, var(--panel-edge));
+    border-radius: 9px; padding: 12px;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,.35), inset 0 -3px 6px rgba(0,0,0,.35), 0 1px 1px rgba(255,255,255,.5);
   }
-  .ed-cell.beat-start { border-left: 2px solid #565b6b; }
-  .ed-cell[data-v="0.5"] { background: #9c6c2e; }
-  .ed-cell[data-v="1"]   { background: #f0a848; }
-  .ed-cell.playhead { outline: 2px solid #ff6b4a; }
+  #edGrid { display: grid; gap: 4px; width: max-content; }
+  .ed-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 1px; color: var(--ink-panel);
+    padding-right: 8px; display: flex; align-items: center; height: 28px; white-space: nowrap;
+  }
+  .ed-cell {
+    width: 28px; height: 28px; border-radius: 5px; cursor: pointer; position: relative;
+    background: linear-gradient(180deg, var(--pad1), var(--pad2));
+    border: 1px solid rgba(0,0,0,.4);
+    box-shadow: 0 2px 0 rgba(0,0,0,.35), inset 0 1px 1px rgba(255,255,255,.8);
+  }
+  .ed-cell:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+  .ed-cell.beat-start { outline: 2px solid rgba(255,255,255,.35); outline-offset: -2px; }
+  .ed-cell::after { /* LED in de pad */
+    content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    width: 9px; height: 9px; border-radius: 50%;
+    background: rgba(0,0,0,.15); box-shadow: inset 0 1px 1px rgba(0,0,0,.4);
+  }
+  .ed-cell[data-v="0.5"] { background: linear-gradient(180deg, var(--pink1), var(--pink2)); }
+  .ed-cell[data-v="0.5"]::after { background: #e2695f; box-shadow: 0 0 5px rgba(255,80,60,.6); }
+  .ed-cell[data-v="1"] { background: linear-gradient(180deg, var(--pink1), var(--pink2)); }
+  .ed-cell[data-v="1"]::after { background: var(--led-on); box-shadow: 0 0 8px rgba(255,60,40,.95); }
+  .ed-cell.playhead { outline: 2px solid #ffd08a; outline-offset: -2px; }
 </style>
 </head>
 <body>
 
+<div class="screw tl"></div><div class="screw tr"></div>
+<div class="screw bl"></div><div class="screw br"></div>
+
 <header>
-  <h1>FOLKBEAT</h1>
+  <div class="logo">
+    <b>F</b><b>O</b><b>L</b><b>K</b><span class="dot"></span><b class="accent">B</b><b>E</b><b>A</b><b>T</b>
+  </div>
   <nav id="tabs">
-    <button data-view="player" class="active">Speler</button>
-    <button data-view="setlist">Setlist</button>
-    <button data-view="editor">Grooves</button>
+    <div class="ledbtn"><span class="led on" data-viewled="player"></span><button class="pushbtn" data-view="player">PATTERN</button></div>
+    <div class="ledbtn"><span class="led" data-viewled="setlist"></span><button class="pushbtn" data-view="setlist">SONG</button></div>
+    <div class="ledbtn"><span class="led" data-viewled="editor"></span><button class="pushbtn" data-view="editor">EDIT</button></div>
   </nav>
-  <select id="kitSelect" title="Drumkit"></select>
+  <div id="kitWrap">
+    <span class="mini-lbl">KIT</span>
+    <select id="kitSelect" title="Drumkit"></select>
+  </div>
   <div id="sigDisplay">4/4</div>
 </header>
 
 <main id="view-player">
   <div id="songBar" hidden>
-    <button id="prevSongBtn">◀</button>
-    <div id="songInfo"><b id="songName"></b><small id="songMeta"></small></div>
-    <button id="saveSongBtn" hidden title="Huidig tempo en groove in dit nummer bewaren">💾</button>
-    <button id="nextSongBtn">▶</button>
+    <button id="prevSongBtn" class="pushbtn">◀</button>
+    <div id="songInfo" class="lcd"><b id="songName"></b><small id="songMeta"></small></div>
+    <button id="saveSongBtn" class="pushbtn" hidden title="Huidig tempo/groove/swing/intro in dit nummer bewaren">💾 SAVE</button>
+    <button id="nextSongBtn" class="pushbtn">▶</button>
   </div>
-  <div id="styles"></div>
-  <div id="tempoRow">
-    <button class="tempo-btn" id="bpmDown">−</button>
-    <div id="bpmDisplay">110<small>BPM</small></div>
-    <button class="tempo-btn" id="bpmUp">+</button>
-    <input type="range" id="tempoSlider" min="40" max="220" value="110">
-    <button id="tapBtn">TAP</button>
+
+  <div id="groovePanel">
+    <h3>GROOVE SELECT</h3>
+    <div id="styles"></div>
   </div>
-  <div id="optsRow">
-    <label>Intro
-      <select id="introSelect">
-        <option value="count1">1 maat aftellen</option>
-        <option value="count2">2 maten aftellen</option>
-        <option value="fill">Fill als intro</option>
-        <option value="direct">Direct starten</option>
-      </select>
-    </label>
-    <label id="swingLabel">Swing
-      <input type="range" id="swingSlider" min="0" max="100" step="5" value="0">
-      <span id="swingVal">0%</span>
-    </label>
+
+  <div id="tempoZone">
+    <div class="sec" id="tempoSec">
+      <h3>TEMPO</h3>
+      <div class="display">
+        <span class="seg" id="bpmSeg"></span>
+        <span class="dp"></span>
+      </div>
+      <div id="dial" title="sleep voor tempo"></div>
+      <div class="bpmbtns">
+        <button id="bpmUp" class="pushbtn">＋</button>
+        <button id="bpmDown" class="pushbtn">－</button>
+      </div>
+      <div class="ledbtn">
+        <span class="led" id="tapLed"></span>
+        <button id="tapBtn" class="pushbtn">TAP</button>
+      </div>
+    </div>
+    <div class="sec" id="perfSec">
+      <h3>PERFORM</h3>
+      <div class="knobwrap">
+        <div class="knob" id="swingKnob" title="sleep voor swing"></div>
+        <div class="lbl">SWING</div>
+        <div class="val" id="swingVal">0%</div>
+      </div>
+      <div class="knobwrap">
+        <div class="knob" id="volKnob" title="sleep voor volume"></div>
+        <div class="lbl">VOLUME</div>
+        <div class="val" id="volVal">90%</div>
+      </div>
+      <div id="introBtns">
+        <div class="ledbtn"><span class="led" data-introled="count1"></span><button class="pushbtn" data-intro="count1">1 MAAT</button></div>
+        <div class="ledbtn"><span class="led" data-introled="count2"></span><button class="pushbtn" data-intro="count2">2 MATEN</button></div>
+        <div class="ledbtn"><span class="led" data-introled="fill"></span><button class="pushbtn" data-intro="fill">FILL</button></div>
+        <div class="ledbtn"><span class="led" data-introled="direct"></span><button class="pushbtn" data-intro="direct">DIRECT</button></div>
+      </div>
+    </div>
   </div>
-  <div id="beatRow"></div>
-  <div id="statusLine">Klaar — druk op start</div>
+
+  <div id="statusLine" class="lcd">Klaar — druk op start</div>
+
   <div id="controls">
-    <button id="mainBtn">START</button>
-    <button id="fillBtn">FILL</button>
-    <button id="partBtn">DEEL A → B</button>
+    <button id="stopBtn" class="bigbtn"><span class="led" id="stopLed"></span>■<small>STOP / OUTRO</small></button>
+    <button id="startBtn" class="bigbtn"><span class="led" id="playLed"></span>▶<small>START</small></button>
+    <button id="fillBtn" class="bigbtn pink"><span class="led" id="fillLed"></span>FILL<small>PGUP / F</small></button>
+    <button id="partABtn" class="bigbtn"><span class="led on" id="partALed"></span>A<small>PART</small></button>
+    <button id="partBBtn" class="bigbtn"><span class="led" id="partBLed"></span>B<small>PART</small></button>
   </div>
-  <footer>Pedaal/toetsen: spatie of PgDn = start·stop &nbsp;·&nbsp; PgUp of F = fill &nbsp;·&nbsp; B = deel &nbsp;·&nbsp; N/P = volgend/vorig nummer &nbsp;·&nbsp; ↑↓ = tempo</footer>
+
+  <div id="silk"><span>FOLKBEAT ES·F</span><span>FOLK PRODUCTION STATION</span></div>
+
+  <div class="sec" id="beatSec">
+    <h3 id="beatTitle">BEAT</h3>
+    <div id="beatRow"></div>
+  </div>
+
+  <footer>PEDAAL: SPATIE/PGDN=START·STOP · PGUP/F=FILL · B=PART · N/P=NUMMER · ↑↓=TEMPO</footer>
 </main>
 
 <main id="view-setlist" hidden>
   <div id="setlistRows"></div>
   <form id="addSongForm">
-    <input id="songNameInput" placeholder="Naam nummer" required maxlength="40">
+    <input id="songNameInput" placeholder="NAAM NUMMER" required maxlength="40">
     <select id="songStyle"></select>
     <input id="songBpm" type="number" min="40" max="220" title="BPM">
-    <button type="submit">+ Toevoegen</button>
+    <button type="submit" class="pushbtn">＋ TOEVOEGEN</button>
   </form>
-  <p class="hint">Tik een nummer aan om het in de speler te laden. Volgorde wijzigen met ▲▼.</p>
+  <p class="hint">TIK EEN NUMMER AAN OM HET IN DE SPELER TE LADEN · VOLGORDE WIJZIGEN MET ▲▼ · BEWERKEN MET ✎</p>
 </main>
 
 <main id="view-editor" hidden>
   <div class="ed-row">
     <select id="edSource"></select>
-    <button id="edLoad">Laden</button>
-    <button id="edDelete" hidden>Verwijder</button>
+    <button id="edLoad" class="pushbtn">LADEN</button>
+    <button id="edDelete" class="pushbtn" hidden>VERWIJDER</button>
   </div>
   <div class="ed-row">
-    <input id="edName" placeholder="Naam groove" maxlength="24">
-    <label>Tellen <select id="edBeats"></select></label>
-    <label>Verdeling
+    <input id="edName" placeholder="NAAM GROOVE" maxlength="24">
+    <label>TELLEN <select id="edBeats"></select></label>
+    <label>VERDELING
       <select id="edSpb">
         <option value="2">8sten (x/4)</option>
         <option value="3">triolen (x/8)</option>
@@ -286,17 +483,17 @@
     <label>BPM <input id="edBpm" type="number" min="40" max="220"></label>
   </div>
   <div class="ed-row" id="edParts">
-    <button data-part="A" class="active">Deel A</button>
-    <button data-part="B">Deel B</button>
-    <button data-part="fill">Fill</button>
+    <button data-part="A" class="pushbtn active">DEEL A</button>
+    <button data-part="B" class="pushbtn">DEEL B</button>
+    <button data-part="fill" class="pushbtn">FILL</button>
   </div>
   <div id="edGridWrap"><div id="edGrid"></div></div>
   <div class="ed-row">
-    <button id="edPreview">▶ Beluister</button>
-    <button id="edSave">💾 Opslaan</button>
+    <button id="edPreview" class="pushbtn">▶ BELUISTER</button>
+    <button id="edSave" class="pushbtn">💾 OPSLAAN</button>
     <span id="edMsg"></span>
   </div>
-  <p class="hint">Tik op een vakje voor zacht → hard → uit. Wijzigingen klinken direct mee tijdens het beluisteren.</p>
+  <p class="hint">TIK OP EEN PAD: ZACHT → HARD → UIT · WIJZIGINGEN KLINKEN DIRECT MEE TIJDENS HET BELUISTEREN</p>
 </main>
 
 <script src="app.js"></script>

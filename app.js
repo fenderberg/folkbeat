@@ -234,7 +234,7 @@ function initAudio() {
   if (ctx) return;
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   master = ctx.createGain();
-  master.gain.value = 0.9;
+  master.gain.value = (state.volume ?? 90) / 100;
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = -12;
   master.connect(comp).connect(ctx.destination);
@@ -349,6 +349,7 @@ const state = {
   styleId: "reel",
   bpm: 110,
   swing: 0,             // 0–100% swing over de offbeats
+  volume: 90,           // mastervolume 0–100
   introMode: "count1",  // count1 | count2 | fill | direct
   running: false,
   phase: "stopped",   // stopped | countin | playing | ending | done
@@ -464,8 +465,7 @@ function resolveBar(t) {
     }
     state.fillQueued = false;
     state.crashAfterFill = true;
-    fillBtn.classList.remove("queued");
-    partBtn.classList.remove("queued");
+    updateFillLed();
     setStatus(`<span class="fill-flash">FILL</span>`);
   } else {
     state.currentGrid = s[state.part] || {};
@@ -473,6 +473,7 @@ function resolveBar(t) {
       state.crashThisBar = true;
       state.crashAfterFill = false;
     }
+    updateFillLed();
     setStatus(`Speelt — deel ${state.part}`);
   }
 }
@@ -522,8 +523,8 @@ function stopNow() {
   clearPlayhead();
   updateMainBtn();
   updatePreviewBtn();
-  fillBtn.classList.remove("queued");
-  partBtn.classList.remove("queued");
+  updateFillLed();
+  updatePartBtn();
   setStatus("Klaar — druk op start");
   releaseWakeLock();
 }
@@ -532,29 +533,63 @@ function stopNow() {
    ALGEMENE UI
    ============================================================ */
 const $ = (id) => document.getElementById(id);
-const stylesEl = $("styles"), bpmDisplay = $("bpmDisplay"), tempoSlider = $("tempoSlider");
-const beatRow = $("beatRow"), statusLine = $("statusLine");
-const mainBtn = $("mainBtn"), fillBtn = $("fillBtn"), partBtn = $("partBtn");
-const sigDisplay = $("sigDisplay");
+const stylesEl = $("styles"), beatRow = $("beatRow"), statusLine = $("statusLine");
+const fillBtn = $("fillBtn"), sigDisplay = $("sigDisplay");
 
 function setStatus(html) { statusLine.innerHTML = html; }
 
-/* --- tabbladen --- */
+/* --- tabbladen (mode-knoppen met LED) --- */
 const VIEWS = ["player", "setlist", "editor"];
 function showView(name) {
   for (const v of VIEWS) $("view-" + v).hidden = v !== name;
-  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.view === name));
+  document.querySelectorAll("[data-viewled]").forEach(l => l.classList.toggle("on", l.dataset.viewled === name));
   if (name !== "editor" && state.preview) stopNow();
 }
-document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => showView(b.dataset.view));
+document.querySelectorAll("#tabs [data-view]").forEach(b => b.onclick = () => showView(b.dataset.view));
+
+/* --- 7-segment BPM-display --- */
+const SEGMAP = { "0": "abcdef", "1": "bc", "2": "abged", "3": "abgcd", "4": "fgbc", "5": "afgcd", "6": "afgedc", "7": "abc", "8": "abcdefg", "9": "abcfgd" };
+function renderBpm(n) {
+  const el = $("bpmSeg");
+  el.innerHTML = "";
+  for (const ch of String(n).padStart(3, " ")) {
+    const d = document.createElement("span");
+    d.className = "digit";
+    for (const seg of "abcdefg") {
+      const i = document.createElement("i");
+      i.className = seg + ((SEGMAP[ch] || "").includes(seg) ? " on" : "");
+      d.appendChild(i);
+    }
+    el.appendChild(d);
+  }
+}
+
+/* --- draaiknop-/dial-bediening: verticaal slepen --- */
+function knobDrag(el, get, set, min, max, perPixel) {
+  let startY = null, startVal = 0;
+  el.addEventListener("pointerdown", (e) => {
+    startY = e.clientY; startVal = get();
+    el.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (startY === null) return;
+    set(Math.min(max, Math.max(min, startVal + (startY - e.clientY) * perPixel)));
+  });
+  const end = () => { startY = null; };
+  el.addEventListener("pointerup", end);
+  el.addEventListener("pointercancel", end);
+}
 
 /* --- stijlen in de speler --- */
 function buildStyles() {
   stylesEl.innerHTML = "";
   for (const s of allStyles()) {
     const b = document.createElement("button");
-    b.className = "style-btn" + (s.id === state.styleId ? " active" : "");
-    b.innerHTML = (s.custom ? `<span class="custom-mark">★</span> ` : "") + `${s.name} ${sigOf(s)}`;
+    b.className = "style-btn";
+    b.innerHTML = `<span class="led${s.id === state.styleId ? " on" : ""}"></span>` +
+      `<span class="pushbtn">${s.custom ? '<span class="custom-mark">★</span> ' : ""}${s.name.toUpperCase()}</span>` +
+      `<small>${sigOf(s)}</small>`;
     b.onclick = () => selectStyleById(s.id, true);
     stylesEl.appendChild(b);
   }
@@ -578,18 +613,26 @@ function persistLast() {
 
 function setBpm(v) {
   state.bpm = Math.min(220, Math.max(40, Math.round(v)));
-  bpmDisplay.innerHTML = `${state.bpm}<small>BPM</small>`;
-  tempoSlider.value = state.bpm;
+  renderBpm(state.bpm);
+  $("dial").style.setProperty("--rot", ((state.bpm - 40) / 180 * 270 - 135) + "deg");
   persistLast();
   renderSongBar();
+}
+
+function setVolume(v) {
+  state.volume = Math.min(100, Math.max(0, Math.round(v)));
+  if (master) master.gain.value = state.volume / 100;
+  $("volVal").textContent = state.volume + "%";
+  $("volKnob").style.setProperty("--rot", (state.volume / 100 * 270 - 135) + "deg");
+  lsSet("folkbeat.volume", state.volume);
 }
 
 /* --- swing & intro --- */
 const INTRO_LABELS = { count1: "1 maat aftellen", count2: "2 maten aftellen", fill: "Fill als intro", direct: "Direct starten" };
 function syncPerfControls() {
-  $("swingSlider").value = state.swing;
   $("swingVal").textContent = state.swing + "%";
-  $("introSelect").value = state.introMode;
+  $("swingKnob").style.setProperty("--rot", (state.swing / 100 * 270 - 135) + "deg");
+  document.querySelectorAll("[data-introled]").forEach(l => l.classList.toggle("on", l.dataset.introled === state.introMode));
 }
 function setSwing(v) {
   state.swing = Math.min(100, Math.max(0, Math.round(v)));
@@ -604,38 +647,51 @@ function setIntroMode(m) {
   renderSongBar();
 }
 
-/* --- beat-indicator --- */
+/* --- beat-indicator: rij step-keys met LED's --- */
 function buildBeatDots() {
   beatRow.innerHTML = "";
-  for (let i = 0; i < style().beats; i++) {
-    const d = document.createElement("div");
-    d.className = "beat-dot";
-    beatRow.appendChild(d);
+  const s = style();
+  const n = stepsPerBar();
+  for (let i = 0; i < n; i++) {
+    const k = document.createElement("div");
+    k.className = "stepkey" + (i % s.spb === 0 ? " accent" : "");
+    k.innerHTML = `<span class="led"></span><div class="pad"></div><span class="lbl">${i % s.spb === 0 ? (i / s.spb + 1) : ""}</span>`;
+    beatRow.appendChild(k);
   }
+  $("beatTitle").textContent = "BEAT — " + s.name.toUpperCase() + " " + sigOf(s);
 }
 function drawBeats() {
   const now = ctx.currentTime;
   while (state.visQueue.length && state.visQueue[0].time <= now) {
     const ev = state.visQueue.shift();
-    if (ev.onBeat !== false) {
-      const dots = beatRow.children;
-      for (let i = 0; i < dots.length; i++) {
-        dots[i].className = "beat-dot" + (i === ev.beat ? " on" + (ev.beat === 0 ? " downbeat" : "") : "");
-      }
-    }
+    const leds = beatRow.querySelectorAll(".stepkey .led");
+    leds.forEach((l, i) => { l.className = "led" + (i === ev.step ? " on" : ""); });
+    $("tapLed").className = "led" + (ev.onBeat !== false ? " on" : "");
     if (state.preview) drawPlayhead(ev.step);
   }
 }
-function clearBeats() { for (const d of beatRow.children) d.className = "beat-dot"; }
+function clearBeats() {
+  beatRow.querySelectorAll(".stepkey .led").forEach(l => { l.className = "led"; });
+  $("tapLed").className = "led";
+}
 
+/* --- transport-LED's --- */
 function updateMainBtn() {
-  mainBtn.className = "";
-  if (state.phase === "stopped") mainBtn.textContent = "START";
-  else if (state.phase === "countin") { mainBtn.textContent = "COUNT-IN"; mainBtn.className = "countin"; }
-  else { mainBtn.textContent = "STOP"; mainBtn.className = "playing"; }
+  const play = $("playLed"), stop = $("stopLed");
+  play.className = "led"; stop.className = "led";
+  if (state.phase === "stopped") stop.classList.add("on");
+  else if (state.phase === "countin") play.classList.add("blink");
+  else if (state.phase === "playing") play.classList.add("on");
+  else { play.classList.add("on"); stop.classList.add("blink"); } // outro
 }
 function updatePartBtn() {
-  partBtn.textContent = state.part === "A" ? "DEEL A → B" : "DEEL B → A";
+  const a = $("partALed"), b = $("partBLed");
+  a.className = "led"; b.className = "led";
+  (state.part === "A" ? a : b).classList.add("on");
+  if (state.partQueued) (state.part === "A" ? b : a).classList.add("blink");
+}
+function updateFillLed() {
+  $("fillLed").className = "led" + (state.fillQueued ? " blink" : state.barIsFill && state.running ? " on" : "");
 }
 
 /* --- transport-acties --- */
@@ -655,7 +711,7 @@ function mainAction() {
 function fillAction() {
   if (state.phase !== "playing" || state.preview) return;
   state.fillQueued = true;
-  fillBtn.classList.add("queued");
+  updateFillLed();
 }
 function partAction() {
   if (state.preview) return;
@@ -664,17 +720,29 @@ function partAction() {
     return;
   }
   state.partQueued = true;
-  partBtn.classList.add("queued");
+  updatePartBtn();
+}
+// part-knoppen A/B: tik op de niet-actieve om te wisselen (of een wachtende wissel te annuleren)
+function requestPart(p) {
+  if (state.preview) return;
+  if (state.partQueued && state.part === p) { state.partQueued = false; updatePartBtn(); return; }
+  if (state.part === p) return;
+  partAction();
 }
 
-mainBtn.onclick = mainAction;
+$("startBtn").onclick = () => { if (!state.running) mainAction(); };
+$("stopBtn").onclick = () => { if (state.running) mainAction(); };
 fillBtn.onclick = fillAction;
-partBtn.onclick = partAction;
+$("partABtn").onclick = () => requestPart("A");
+$("partBBtn").onclick = () => requestPart("B");
 $("bpmUp").onclick = () => setBpm(state.bpm + 2);
 $("bpmDown").onclick = () => setBpm(state.bpm - 2);
-tempoSlider.oninput = () => setBpm(+tempoSlider.value);
-$("swingSlider").oninput = () => setSwing(+$("swingSlider").value);
-$("introSelect").onchange = () => setIntroMode($("introSelect").value);
+document.querySelectorAll("#introBtns [data-intro]").forEach(b => {
+  b.onclick = () => setIntroMode(b.dataset.intro);
+});
+knobDrag($("dial"), () => state.bpm, setBpm, 40, 220, 0.5);
+knobDrag($("swingKnob"), () => state.swing, setSwing, 0, 100, 0.5);
+knobDrag($("volKnob"), () => state.volume, setVolume, 0, 100, 0.6);
 
 /* --- drumkit-keuze --- */
 function buildKitSelect() {
@@ -1125,7 +1193,10 @@ if (last && styleById(last.styleId)) {
 rebuildStyleLists();
 selectStyleById(state.styleId);
 setBpm(state.bpm);
+setVolume(lsGet("folkbeat.volume", 90));
 syncPerfControls();
+updateMainBtn();
+updatePartBtn();
 edNew();
 setStatus("Samples laden…");
 loadSamples();
