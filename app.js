@@ -639,7 +639,12 @@ function updatePartBtn() {
 }
 
 /* --- transport-acties --- */
+let lastMainAction = 0;
 function mainAction() {
+  // debounce: een dubbele (pedaal)tik binnen 300 ms is vrijwel zeker onbedoeld
+  const now = performance.now();
+  if (now - lastMainAction < 300) return;
+  lastMainAction = now;
   if (state.preview) { stopNow(); return; }
   if (!state.running) start();
   else if (state.phase === "playing") {
