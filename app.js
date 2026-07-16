@@ -579,6 +579,7 @@ function showView(name) {
   for (const v of VIEWS) $("view-" + v).hidden = v !== name;
   document.querySelectorAll("#tabs [data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === name));
   if (name !== "editor" && state.preview) stopNow();
+  if (name !== "editor" && document.documentElement.classList.contains("editor-focus")) setEditorFocus(false);
   if (name === "editor" && ed) renderGrid();
 }
 document.querySelectorAll("#tabs [data-view]").forEach(b => b.onclick = () => showView(b.dataset.view));
@@ -1068,6 +1069,22 @@ let ed = null;       // werkkopie van de groove die bewerkt wordt
 let edPart = "A";
 let edPatternClipboard = null;
 
+function setEditorFocus(enabled) {
+  const active = !!enabled && matchMedia("(max-width: 620px)").matches;
+  $("view-editor").classList.toggle("focus-mode", active);
+  document.documentElement.classList.toggle("editor-focus", active);
+  $("edFocus").textContent = active ? "✕" : "⛶";
+  $("edFocus").setAttribute("aria-label", active ? "Focusmodus sluiten" : "Focusmodus openen");
+  if (active) $("edSettings").hidden = true;
+  requestAnimationFrame(renderGrid);
+}
+
+$("edSettingsToggle").onclick = () => {
+  $("edSettings").hidden = !$("edSettings").hidden;
+  $("edSettingsToggle").classList.toggle("active", !$("edSettings").hidden);
+};
+$("edFocus").onclick = () => setEditorFocus(!$("view-editor").classList.contains("focus-mode"));
+
 function editorRhythmConfig(meter, note) {
   if (meter === "6/8") return { beats: 2, spb: note === "16" ? 6 : 3 };
   return { beats: meter === "3/4" ? 3 : 4, spb: note === "16" ? 4 : 2 };
@@ -1202,6 +1219,53 @@ $("edPatternPaste").onclick = () => {
   edFlash(`Geplakt naar ${edPart === "fill" ? "FILL" : edPart}`);
 };
 
+let editorPaint = null;
+
+function paintEditorCell(cell, audition = false) {
+  if (!editorPaint || !cell?.classList.contains("ed-cell")) return;
+  const key = `${cell.dataset.inst}:${cell.dataset.step}`;
+  if (editorPaint.visited.has(key)) return;
+  editorPaint.visited.add(key);
+  const inst = cell.dataset.inst;
+  const step = +cell.dataset.step;
+  ed[editorPaint.part][inst][step] = editorPaint.value;
+  if (editorPaint.value) cell.dataset.v = String(editorPaint.value); else delete cell.dataset.v;
+  if (audition && editorPaint.value && !state.running) {
+    initAudio(); ctx.resume(); playInstrument(inst, ctx.currentTime, editorPaint.value);
+  }
+}
+
+function startEditorPaint(event, cell) {
+  if (event.button !== undefined && event.button !== 0) return;
+  event.preventDefault();
+  const inst = cell.dataset.inst;
+  const step = +cell.dataset.step;
+  const current = ed[edPart][inst][step] || 0;
+  const index = VELOCITY_STEPS.indexOf(current);
+  editorPaint = {
+    pointerId: event.pointerId,
+    part: edPart,
+    value: VELOCITY_STEPS[(index + 1) % VELOCITY_STEPS.length],
+    visited: new Set()
+  };
+  paintEditorCell(cell, true);
+}
+
+addEventListener("pointermove", (event) => {
+  if (!editorPaint || event.pointerId !== editorPaint.pointerId) return;
+  event.preventDefault();
+  const cell = document.elementFromPoint(event.clientX, event.clientY)?.closest(".ed-cell");
+  if (cell && $("edGrid").contains(cell)) paintEditorCell(cell);
+}, { passive: false });
+
+function stopEditorPaint(event) {
+  if (!editorPaint || (event.pointerId !== undefined && event.pointerId !== editorPaint.pointerId)) return;
+  editorPaint = null;
+}
+addEventListener("pointerup", stopEditorPaint);
+addEventListener("pointercancel", stopEditorPaint);
+addEventListener("blur", () => { editorPaint = null; });
+
 function renderGrid() {
   const grid = $("edGrid");
   grid.innerHTML = "";
@@ -1225,17 +1289,12 @@ function renderGrid() {
         const cell = document.createElement("div");
         cell.className = "ed-cell" + (i % ed.spb === 0 ? " beat-start" : "");
         cell.dataset.step = i;
+        cell.dataset.inst = inst;
+        cell.setAttribute("role", "button");
+        cell.setAttribute("aria-label", `${label}, stap ${i + 1}`);
         const v = ed[edPart][inst][i];
         if (v) cell.dataset.v = String(v);
-        cell.onclick = () => {
-          const cur = ed[edPart][inst][i] || 0;
-          const idx = VELOCITY_STEPS.indexOf(cur);
-          const next = VELOCITY_STEPS[(idx + 1) % VELOCITY_STEPS.length];
-          ed[edPart][inst][i] = next;
-          if (next) cell.dataset.v = String(next); else delete cell.dataset.v;
-          // meteen even horen wat je aanzet
-          if (next && !state.running) { initAudio(); ctx.resume(); playInstrument(inst, ctx.currentTime, next); }
-        };
+        cell.onpointerdown = (event) => startEditorPaint(event, cell);
         beats.appendChild(cell);
       }
       line.appendChild(beats);
@@ -1264,7 +1323,11 @@ let editorResizeFrame = 0;
 addEventListener("resize", () => {
   cancelAnimationFrame(editorResizeFrame);
   editorResizeFrame = requestAnimationFrame(() => {
-    if (ed && !$("view-editor").hidden) renderGrid();
+    if (!matchMedia("(max-width: 620px)").matches && document.documentElement.classList.contains("editor-focus")) {
+      setEditorFocus(false);
+    } else if (ed && !$("view-editor").hidden) {
+      renderGrid();
+    }
   });
 });
 function drawPlayhead(step) {
@@ -1343,7 +1406,11 @@ function rebuildStyleLists() {
    ============================================================ */
 document.addEventListener("keydown", (e) => {
   if (e.repeat) return;
-  if (e.code === "Escape") { closeSheets(); return; }
+  if (e.code === "Escape") {
+    if (document.documentElement.classList.contains("editor-focus")) setEditorFocus(false);
+    else closeSheets();
+    return;
+  }
   const tag = e.target.tagName;
   if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
   switch (e.code) {

@@ -306,7 +306,22 @@
     display: flex; align-items: center; justify-content: center;
   }
   #edPreview.on { background: var(--accent); color: var(--accent-ink); }
+  #edTopActions { display: flex; align-items: center; gap: 8px; }
+  #edSettingsToggle {
+    width: 44px; height: 44px; border-radius: 12px; background: var(--surface-2);
+    color: var(--text-dim); font-size: 18px;
+  }
   .edRow { display: flex; align-items: center; gap: 10px; padding: 4px 16px 8px; flex-wrap: wrap; flex-shrink: 0; }
+  #edCore { justify-content: space-between; }
+  #edCoreMain, #edRhythmControls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  #edFocus { width: 42px; padding: 8px 0; font-size: 18px; }
+  #edSettings {
+    display: flex; align-items: center; gap: 8px; padding: 4px 16px 10px;
+    flex-wrap: wrap; flex-shrink: 0;
+  }
+  #edSettings[hidden] { display: none; }
+  #edSettings #edSource { flex: 1; min-width: 160px; }
+  #edSettings #edDelete { color: var(--danger); }
   .segmented { display: flex; background: var(--surface); border-radius: 12px; padding: 3px; }
   .segmented button { padding: 8px 18px; border-radius: 10px; color: var(--text-dim); font-size: 14px; font-weight: 600; }
   .segmented button.active { background: var(--surface-2); color: var(--accent); font-weight: 700; box-shadow: var(--shadow); }
@@ -343,7 +358,8 @@
     width: 52px; background: none; border: none; outline: none;
     font-size: 14px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums;
   }
-  #edMsg { font-size: 13px; font-weight: 600; color: var(--play); }
+  #edMsg { padding: 0 16px 6px; font-size: 13px; font-weight: 600; color: var(--play); flex-shrink: 0; }
+  #edMsg:empty { display: none; }
 
   #edGridWrap { flex: 1; overflow: auto; min-height: 0; padding: 8px 16px; }
   #edGrid { display: flex; flex-direction: column; gap: 9px; width: 100%; min-width: 0; }
@@ -362,7 +378,7 @@
   .ed-cell {
     width: 100%; aspect-ratio: 1; min-width: 0; border-radius: 8px; cursor: pointer;
     background: var(--surface-2);
-    transition: background 120ms ease-out;
+    transition: background 120ms ease-out; touch-action: none;
   }
   .ed-cell.beat-start { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--accent) 38%, transparent); }
   .ed-cell[data-v="0.5"] { background: color-mix(in srgb, var(--accent) 40%, var(--surface-2)); }
@@ -375,12 +391,28 @@
     .ed-cell { width: 48px; height: 48px; }
   }
 
-  #edActions { display: flex; gap: 10px; padding: 12px 16px calc(20px + env(safe-area-inset-bottom)); flex-shrink: 0; }
+  #edActions { display: flex; gap: 8px; padding: 10px 16px calc(16px + env(safe-area-inset-bottom)); flex-shrink: 0; }
   #edActions button { height: 50px; border-radius: var(--radius-m); font-size: 15px; font-weight: 600; }
-  #edSave { flex: 1; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
-  #edCopy { flex: 1; background: var(--surface-2); }
+  #edSave { flex: 1.3; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+  #edPatternCopy, #edPatternPaste { flex: 1; background: var(--surface-2); }
+  #edPatternPaste:disabled { opacity: .42; }
+  #edCopy { background: var(--surface-2); }
   #edDelete { padding: 0 18px; background: var(--surface-2); color: var(--danger); }
   #edDelete[hidden] { display: none; }
+
+  @media (max-width: 620px) {
+    .ed-cell { height: 44px; aspect-ratio: auto; }
+    #view-editor.focus-mode #edTop,
+    #view-editor.focus-mode #edRhythmControls,
+    #view-editor.focus-mode #edSettings,
+    #view-editor.focus-mode #edActions { display: none; }
+    #view-editor.focus-mode #edCore { padding-top: 8px; }
+    #view-editor.focus-mode #edCoreMain { width: 100%; justify-content: space-between; flex-wrap: nowrap; }
+    html.editor-focus #tabsWrap,
+    html.editor-focus #appearanceControls { display: none; }
+    #view-editor.focus-mode #edGridWrap { padding-top: 4px; }
+  }
+  @media (min-width: 621px) { #edFocus { display: none; } }
 
   /* ================= SHEETS ================= */
   #sheetDim {
@@ -521,15 +553,15 @@
       grid-template-rows: auto auto minmax(0, 1fr) auto;
       grid-template-areas:
         "title grid"
-        "options grid"
-        "source grid"
+        "core grid"
+        "settings grid"
         "actions actions";
       gap: 12px 24px;
     }
     #view-editor[hidden] { display: none; }
     #edTop { grid-area: title; padding: 0; align-self: start; }
-    #edTop + .edRow { grid-area: options; padding: 0; align-self: start; }
-    #edTop + .edRow + .edRow { grid-area: source; padding: 0; align-self: start; align-content: start; }
+    #edCore { grid-area: core; padding: 0; align-self: start; }
+    #edSettings { grid-area: settings; padding: 0; align-self: start; align-content: start; }
     #edGridWrap {
       grid-area: grid; padding: 20px; background: var(--surface);
       border-radius: var(--radius-l); box-shadow: var(--shadow);
@@ -655,35 +687,43 @@
 <main id="view-editor" hidden>
   <div id="edTop">
     <input id="edName" placeholder="Naam groove" maxlength="24">
-    <button id="edPreview">▶</button>
-  </div>
-  <div class="edRow">
-    <div id="edParts" class="segmented">
-      <button data-part="A" class="active">A</button>
-      <button data-part="B">B</button>
-      <button data-part="fill">FILL</button>
-    </div>
-    <button id="edPatternCopy" class="edToolBtn">Copy</button>
-    <button id="edPatternPaste" class="edToolBtn" disabled>Paste</button>
-    <select id="edMeter" class="chipSelect" aria-label="Maatsoort"></select>
-    <select id="edNote" class="chipSelect" aria-label="Nootwaarde"></select>
-    <div class="edTempo">
-      <span class="cap">BPM</span>
-      <button id="edBpmDown" aria-label="Tempo lager">−</button>
-      <input id="edBpm" type="number" min="40" max="220" aria-label="Tempo">
-      <button id="edBpmUp" aria-label="Tempo hoger">+</button>
+    <div id="edTopActions">
+      <button id="edSettingsToggle" aria-label="Editorinstellingen" title="Editorinstellingen">⚙</button>
     </div>
   </div>
-  <div class="edRow">
+  <div class="edRow" id="edCore">
+    <div id="edCoreMain">
+      <div id="edParts" class="segmented">
+        <button data-part="A" class="active">A</button>
+        <button data-part="B">B</button>
+        <button data-part="fill">FILL</button>
+      </div>
+      <button id="edPreview" aria-label="Voorbeeld afspelen">▶</button>
+      <button id="edFocus" class="edToolBtn" aria-label="Focusmodus openen" title="Focusmodus">⛶</button>
+    </div>
+    <div id="edRhythmControls">
+      <select id="edMeter" class="chipSelect" aria-label="Maatsoort"></select>
+      <select id="edNote" class="chipSelect" aria-label="Nootwaarde"></select>
+      <div class="edTempo">
+        <span class="cap">BPM</span>
+        <button id="edBpmDown" aria-label="Tempo lager">−</button>
+        <input id="edBpm" type="number" min="40" max="220" aria-label="Tempo">
+        <button id="edBpmUp" aria-label="Tempo hoger">+</button>
+      </div>
+    </div>
+  </div>
+  <div id="edSettings" hidden>
     <select id="edSource" class="chipSelect"></select>
     <button id="edLoad" class="chipBtn">Laden</button>
-    <span id="edMsg"></span>
+    <button id="edCopy" class="edToolBtn">Dupliceer groove</button>
+    <button id="edDelete" class="edToolBtn" hidden>Verwijder</button>
   </div>
+  <div id="edMsg" role="status"></div>
   <div id="edGridWrap"><div id="edGrid"></div></div>
   <div id="edActions">
+    <button id="edPatternCopy">Copy</button>
+    <button id="edPatternPaste" disabled>Paste</button>
     <button id="edSave">Opslaan</button>
-    <button id="edCopy">Dupliceer groove</button>
-    <button id="edDelete" hidden>Verwijder</button>
   </div>
 </main>
 
