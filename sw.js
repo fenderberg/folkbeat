@@ -1,4 +1,4 @@
-const CACHE = "folkbeat-v5";
+const CACHE = "folkbeat-v8";
 const MP3S = [
   "kick1", "kick2", "snare1", "snare2", "stick1", "stick2",
   "hatc1", "hatc2", "hato1", "hato2", "tomh1", "tomh2",
@@ -28,7 +28,7 @@ const M4AS = [
   "sc-shk1", "sc-shk2",
 ].map((n) => "samples/" + n + ".m4a");
 const SAMPLES = [...MP3S, ...M4AS];
-const ASSETS = ["./", "index.html", "app.js", "manifest.webmanifest", "icon.svg", ...SAMPLES];
+const ASSETS = ["./", "index.html", "app.js", "skins/electribe.css", "manifest.webmanifest", "icon.svg", ...SAMPLES];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));

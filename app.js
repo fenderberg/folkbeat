@@ -141,8 +141,8 @@ const BUILTIN_STYLES = [
 ];
 
 const ED_INSTRUMENTS = [
-  ["kick", "Kick"], ["snare", "Snare"], ["stick", "Sidestick"],
-  ["hatC", "Hihat dicht"], ["hatO", "Hihat open"],
+  ["kick", "Kick"], ["snare", "Snare"], ["stick", "Stick"],
+  ["hatC", "Hat dicht"], ["hatO", "Hat open"],
   ["tomH", "Tom hoog"], ["tomL", "Tom laag"],
   ["ride", "Ride"], ["crash", "Crash"], ["shaker", "Shaker"],
 ];
@@ -290,9 +290,6 @@ async function loadSamples() {
     } catch (_) { failed++; }
   }));
   samplesLoaded = failed === 0;
-  if (state.phase === "stopped") {
-    setStatus(samplesLoaded ? "Klaar — druk op start" : "Klaar (synth-geluid, samples niet geladen)");
-  }
 }
 
 function chokeOpenHats(t) {
@@ -497,25 +494,19 @@ function resolveBar(t) {
     state.barIsFill = false;
     state.crashThisBar = true;
     state.crashAfterFill = false;
-    updatePartBtn();
-    updateFillLed();
-    setStatus(`Speelt — deel ${state.part}`);
   } else if (state.fillQueued) {
     state.currentGrid = pickFill(s);
     state.barIsFill = true;
     state.fillQueued = false;
     state.crashAfterFill = true;
-    updateFillLed();
-    setStatus(`<span class="fill-flash">FILL</span>`);
   } else {
     state.currentGrid = s[state.part] || {};
     if (state.crashAfterFill) {
       state.crashThisBar = true;
       state.crashAfterFill = false;
     }
-    updateFillLed();
-    setStatus(`Speelt — deel ${state.part}`);
   }
+  updateTransportUI();
 }
 
 function schedulerLoop() {
@@ -539,9 +530,9 @@ function start(opts = {}) {
   state.timer = setInterval(schedulerLoop, LOOKAHEAD_MS);
   stopIdleBlink();
   requestWakeLock();
-  updateMainBtn(); updatePartBtn();
-  buildBeatDots();
-  if (!state.preview) setStatus("Start!");
+  buildBeatSegs();
+  updateTransportUI();
+  updatePreviewBtn();
 }
 
 function stopNow() {
@@ -553,11 +544,8 @@ function stopNow() {
   state.visQueue = [];
   clearBeats();
   clearPlayhead();
-  updateMainBtn();
+  updateTransportUI();
   updatePreviewBtn();
-  updateFillLed();
-  updatePartBtn();
-  setStatus("Klaar — druk op start");
   releaseWakeLock();
   startIdleBlink();
 }
@@ -566,107 +554,107 @@ function stopNow() {
    ALGEMENE UI
    ============================================================ */
 const $ = (id) => document.getElementById(id);
-const stylesEl = $("styles"), beatRow = $("beatRow"), statusLine = $("statusLine");
-const fillBtn = $("fillBtn"), sigDisplay = $("sigDisplay");
 
-function setStatus(html) { statusLine.innerHTML = html; }
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
-/* --- tabbladen (mode-knoppen met LED) --- */
+// knop-vasthouden = herhalen (tempo-steppers)
+function holdRepeat(btn, fn) {
+  let t = null, iv = null;
+  btn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    fn();
+    t = setTimeout(() => { iv = setInterval(fn, 70); }, 450);
+  });
+  const end = () => { clearTimeout(t); clearInterval(iv); t = iv = null; };
+  btn.addEventListener("pointerup", end);
+  btn.addEventListener("pointercancel", end);
+  btn.addEventListener("pointerleave", end);
+}
+
+/* --- tabbladen --- */
 const VIEWS = ["player", "setlist", "editor"];
 function showView(name) {
   for (const v of VIEWS) $("view-" + v).hidden = v !== name;
-  document.querySelectorAll("[data-viewled]").forEach(l => l.classList.toggle("on", l.dataset.viewled === name));
+  document.querySelectorAll("#tabs [data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === name));
   if (name !== "editor" && state.preview) stopNow();
 }
 document.querySelectorAll("#tabs [data-view]").forEach(b => b.onclick = () => showView(b.dataset.view));
 
-/* --- 7-segment BPM-display --- */
-const SEGMAP = { "0": "abcdef", "1": "bc", "2": "abged", "3": "abgcd", "4": "fgbc", "5": "afgcd", "6": "afgedc", "7": "abc", "8": "abcdefg", "9": "abcfgd" };
-function renderBpm(n) {
-  const el = $("bpmSeg");
-  el.innerHTML = "";
-  for (const ch of String(n).padStart(3, " ")) {
-    const d = document.createElement("span");
-    d.className = "digit";
-    for (const seg of "abcdefg") {
-      const i = document.createElement("i");
-      i.className = seg + ((SEGMAP[ch] || "").includes(seg) ? " on" : "");
-      d.appendChild(i);
-    }
-    el.appendChild(d);
-  }
+/* --- expliciet licht/donker-thema --- */
+const themeToggle = $("themeToggle");
+function effectiveTheme() {
+  const saved = document.documentElement.dataset.theme;
+  return saved || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+}
+function applyTheme(theme, persist = true) {
+  document.documentElement.dataset.theme = theme;
+  if (persist) lsSet("folkbeat.theme", theme);
+  themeToggle.textContent = theme === "dark" ? "☀ Licht" : "☾ Donker";
+  themeToggle.setAttribute("aria-label", theme === "dark" ? "Schakel naar licht thema" : "Schakel naar donker thema");
+  document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.content = theme === "dark" ? "#111318" : "#F7F7F5");
+}
+applyTheme(lsGet("folkbeat.theme", effectiveTheme()), false);
+themeToggle.onclick = () => applyTheme(effectiveTheme() === "dark" ? "light" : "dark");
+
+/* --- skins: alleen presentatie; dezelfde DOM en bediening blijven leidend --- */
+const skinSelect = $("skinSelect");
+function applySkin(skin, persist = true) {
+  const known = ["modern", "electribe"];
+  const selected = known.includes(skin) ? skin : "modern";
+  document.documentElement.dataset.skin = selected;
+  skinSelect.value = selected;
+  if (persist) lsSet("folkbeat.skin", selected);
+}
+applySkin(lsGet("folkbeat.skin", "modern"), false);
+skinSelect.onchange = () => applySkin(skinSelect.value);
+
+/* --- toestandsband: het op-afstand-afleesbare element --- */
+function updateBand() {
+  const band = $("stateBand");
+  band.classList.remove("playing", "fill", "preview");
+  if (state.phase !== "playing") { band.textContent = "GESTOPT"; return; }
+  if (state.preview) { band.classList.add("preview"); band.textContent = "MEELUISTEREN"; return; }
+  if (state.partQueued) { band.classList.add("fill"); band.textContent = "→ DEEL " + (state.part === "A" ? "B" : "A"); return; }
+  if (state.barIsFill || state.fillQueued) { band.classList.add("fill"); band.textContent = "FILL"; return; }
+  band.classList.add("playing"); band.textContent = "DEEL " + state.part;
 }
 
-/* --- draaiknop-/dial-bediening: verticaal slepen --- */
-function knobDrag(el, get, set, min, max, perPixel) {
-  let startY = null, startVal = 0;
-  el.addEventListener("pointerdown", (e) => {
-    startY = e.clientY; startVal = get();
-    el.setPointerCapture(e.pointerId);
-    e.preventDefault();
-  });
-  el.addEventListener("pointermove", (e) => {
-    if (startY === null) return;
-    set(Math.min(max, Math.max(min, startVal + (startY - e.clientY) * perPixel)));
-  });
-  const end = () => { startY = null; };
-  el.addEventListener("pointerup", end);
-  el.addEventListener("pointercancel", end);
+/* --- transportknoppen --- */
+function updateTransportUI() {
+  const playing = state.phase === "playing";
+  const targetPart = state.part === "A" ? "B" : "A";
+  $("startBtn").classList.toggle("playing", playing);
+  $("playLabel").textContent = playing ? "STOP" : "START";
+  $("startBtn").setAttribute("aria-label", playing ? "Stop" : "Start");
+  $("partLetter").textContent = targetPart;
+  $("partBtn").setAttribute("aria-label", `Wissel naar deel ${targetPart}`);
+  $("partBtn").classList.toggle("queued", state.partQueued);
+  $("fillBtn").classList.toggle("on", state.fillQueued || (state.barIsFill && state.running && !state.preview));
+  updateBand();
 }
 
-/* --- stijlen in de speler --- */
-function buildStyles() {
-  stylesEl.innerHTML = "";
-  for (const s of allStyles()) {
-    const b = document.createElement("button");
-    b.className = "style-btn";
-    b.innerHTML = `<span class="led${s.id === state.styleId ? " on" : ""}"></span>` +
-      `<span class="pushbtn">${s.custom ? '<span class="custom-mark">★</span> ' : ""}${s.name.toUpperCase()}</span>` +
-      `<small>${sigOf(s)}</small>`;
-    b.onclick = () => selectStyleById(s.id, true);
-    stylesEl.appendChild(b);
-  }
-}
-function selectStyleById(id, setTempo = false) {
-  const s = styleById(id);
-  if (!s) return;
-  state.styleId = id;
-  if (setTempo) setBpm(s.bpm);
-  sigDisplay.textContent = sigOf(s);
-  buildStyles();
-  buildBeatDots();
-  if (state.step >= stepsPerBar()) state.step = 0;
+/* --- BPM-weergave --- */
+function setBpm(v) {
+  state.bpm = Math.min(220, Math.max(40, Math.round(v)));
+  $("bpmBig").textContent = state.bpm;
+  $("bpmSmall").textContent = state.bpm;
+  $("ipadBpm").textContent = state.bpm;
   persistLast();
   renderSongBar();
+  if (!state.running) startIdleBlink();
 }
 
 function persistLast() {
   lsSet("folkbeat.last", { styleId: state.styleId, bpm: state.bpm, swing: state.swing, humanize: state.humanize });
 }
 
-function setBpm(v) {
-  state.bpm = Math.min(220, Math.max(40, Math.round(v)));
-  renderBpm(state.bpm);
-  $("dial").style.setProperty("--rot", ((state.bpm - 40) / 180 * 270 - 135) + "deg");
-  persistLast();
-  renderSongBar();
-  if (!state.running) startIdleBlink();
-}
-
 function setVolume(v) {
   state.volume = Math.min(100, Math.max(0, Math.round(v)));
   if (master) master.gain.value = state.volume / 100;
-  $("volVal").textContent = state.volume + "%";
-  $("volKnob").style.setProperty("--rot", (state.volume / 100 * 270 - 135) + "deg");
+  syncPerfControls();
   lsSet("folkbeat.volume", state.volume);
-}
-
-/* --- swing & humanize --- */
-function syncPerfControls() {
-  $("swingVal").textContent = state.swing + "%";
-  $("swingKnob").style.setProperty("--rot", (state.swing / 100 * 270 - 135) + "deg");
-  $("humVal").textContent = state.humanize + "%";
-  $("humKnob").style.setProperty("--rot", (state.humanize / 100 * 270 - 135) + "deg");
 }
 function setSwing(v) {
   state.swing = Math.min(100, Math.max(0, Math.round(v)));
@@ -678,68 +666,145 @@ function setHumanize(v) {
   state.humanize = Math.min(100, Math.max(0, Math.round(v)));
   syncPerfControls();
   persistLast();
+  renderSongBar();
 }
 
-/* --- beat-indicator: rij step-keys met LED's --- */
-function buildBeatDots() {
-  beatRow.innerHTML = "";
-  const s = style();
-  const n = stepsPerBar();
-  for (let i = 0; i < n; i++) {
-    const k = document.createElement("div");
-    k.className = "stepkey" + (i % s.spb === 0 ? " accent" : "");
-    k.innerHTML = `<span class="led"></span><div class="pad"></div><span class="lbl">${i % s.spb === 0 ? (i / s.spb + 1) : ""}</span>`;
-    beatRow.appendChild(k);
+/* --- regelaars: chips in de speler + sliders in de sheet --- */
+function syncPerfControls() {
+  $("swingChip").textContent = `Swing ${state.swing}%`;
+  $("humChip").textContent = `Hum. ${state.humanize}%`;
+  $("kitChip").textContent = `Kit ${currentKit().name}`;
+  $("swingVal").textContent = state.swing + "%";
+  $("humVal").textContent = state.humanize + "%";
+  $("volVal").textContent = state.volume + "%";
+  $("swingRange").value = state.swing;
+  $("humRange").value = state.humanize;
+  $("volRange").value = state.volume;
+  $("ipadSwingVal").textContent = state.swing + "%";
+  $("ipadHumVal").textContent = state.humanize + "%";
+  $("ipadVolVal").textContent = state.volume + "%";
+  $("ipadSwing").value = state.swing;
+  $("ipadHum").value = state.humanize;
+  $("ipadVol").value = state.volume;
+  for (const [id, value] of [
+    ["swingRange", state.swing], ["humRange", state.humanize], ["volRange", state.volume],
+    ["ipadSwing", state.swing], ["ipadHum", state.humanize], ["ipadVol", state.volume]
+  ]) $(id).style.setProperty("--range-pct", value + "%");
+}
+$("swingRange").oninput = (e) => setSwing(+e.target.value);
+$("humRange").oninput = (e) => setHumanize(+e.target.value);
+$("volRange").oninput = (e) => setVolume(+e.target.value);
+$("ipadSwing").oninput = (e) => setSwing(+e.target.value);
+$("ipadHum").oninput = (e) => setHumanize(+e.target.value);
+$("ipadVol").oninput = (e) => setVolume(+e.target.value);
+
+function buildKitChips() {
+  for (const wrap of [$("kitChips"), $("ipadKitChips")]) {
+    wrap.innerHTML = "";
+    for (const k of KITS) {
+      const b = document.createElement("button");
+      b.className = "chip" + (k.id === kitId ? " active" : "");
+      b.textContent = k.name;
+      b.onclick = () => {
+        kitId = k.id;
+        lsSet("folkbeat.kit", kitId);
+        buildKitChips();
+        syncPerfControls();
+      };
+      wrap.appendChild(b);
+    }
   }
-  $("beatTitle").textContent = "BEAT — " + s.name.toUpperCase() + " " + sigOf(s);
+}
+
+/* --- sheets --- */
+function openSheet(el) { $("sheetDim").hidden = false; el.hidden = false; }
+function closeSheets() {
+  $("sheetDim").hidden = true;
+  $("ctrlSheet").hidden = true;
+  $("songSheet").hidden = true;
+}
+$("sheetDim").onclick = closeSheets;
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeSheets);
+
+$("swingChip").onclick = () => { syncPerfControls(); openSheet($("ctrlSheet")); };
+$("humChip").onclick = $("swingChip").onclick;
+$("kitChip").onclick = $("swingChip").onclick;
+
+/* --- grooves in de speler --- */
+function buildStyles() {
+  const wrap = $("styles");
+  wrap.innerHTML = "";
+  for (const s of allStyles()) {
+    const b = document.createElement("button");
+    b.className = "chip" + (s.id === state.styleId ? " active" : "");
+    b.title = sigOf(s);
+    b.innerHTML = (s.custom ? '<span class="star">★</span> ' : "") + escapeHtml(s.name);
+    b.onclick = () => selectStyleById(s.id, true);
+    wrap.appendChild(b);
+  }
+}
+function selectStyleById(id, setTempo = false) {
+  const s = styleById(id);
+  if (!s) return;
+  state.styleId = id;
+  if (setTempo) setBpm(s.bpm);
+  buildStyles();
+  buildBeatSegs();
+  if (state.step >= stepsPerBar()) state.step = 0;
+  persistLast();
+  renderSongBar();
+}
+
+/* --- beat-indicator: segmentenrij, tel 1 breder --- */
+function buildBeatSegs() {
+  const row = $("beatRow");
+  row.innerHTML = "";
+  for (let i = 0; i < stepsPerBar(); i++) {
+    const d = document.createElement("div");
+    d.className = "seg";
+    row.appendChild(d);
+  }
 }
 function drawBeats() {
   const now = ctx.currentTime;
   while (state.visQueue.length && state.visQueue[0].time <= now) {
     const ev = state.visQueue.shift();
-    const leds = beatRow.querySelectorAll(".stepkey .led");
-    leds.forEach((l, i) => { l.className = "led" + (i === ev.step ? " on" : ""); });
-    $("tapLed").className = "led" + (ev.onBeat !== false ? " on" : "");
+    const segs = $("beatRow").children;
+    for (let i = 0; i < segs.length; i++) segs[i].classList.toggle("on", i === ev.step);
+    if (ev.onBeat) pulseDot();
     if (state.preview) drawPlayhead(ev.step);
   }
 }
 function clearBeats() {
-  beatRow.querySelectorAll(".stepkey .led").forEach(l => { l.className = "led"; });
-  $("tapLed").className = "led";
+  for (const s of $("beatRow").children) s.classList.remove("on");
+  resetDot();
 }
 
-/* --- tempo-LED bij stilstand: knippert altijd op het huidige tempo --- */
+/* --- beat-dot naast het tempo --- */
+function pulseDot() {
+  const d = $("beatDot");
+  d.classList.add("pulse");
+  d.style.animation = "none";
+  void d.offsetWidth; // herstart de animatie
+  d.style.animation = `fbBeat ${Math.min(60 / state.bpm, 0.6)}s ease-out 1 forwards`;
+}
+function resetDot() {
+  const d = $("beatDot");
+  d.classList.remove("pulse");
+  d.style.animation = "";
+}
+
+/* --- bij stilstand knippert de dot op het ingestelde tempo --- */
 let idleBlinkTimer = null;
 function startIdleBlink() {
   stopIdleBlink();
-  const tap = $("tapLed");
-  const tick = () => {
-    tap.classList.add("on");
-    setTimeout(() => tap.classList.remove("on"), 90);
-  };
-  tick();
-  idleBlinkTimer = setInterval(tick, 60000 / state.bpm);
+  pulseDot();
+  idleBlinkTimer = setInterval(pulseDot, 60000 / state.bpm);
 }
 function stopIdleBlink() {
   if (idleBlinkTimer) clearInterval(idleBlinkTimer);
   idleBlinkTimer = null;
-}
-
-/* --- transport-LED's --- */
-function updateMainBtn() {
-  const running = state.phase === "playing";
-  $("playLed").className = "led" + (running ? " on" : "");
-  $("playIcon").textContent = running ? "■" : "▶";
-  $("playLabel").textContent = running ? "STOP" : "START";
-}
-function updatePartBtn() {
-  const a = $("partALed"), b = $("partBLed");
-  a.className = "led"; b.className = "led";
-  (state.part === "A" ? a : b).classList.add("on");
-  if (state.partQueued) (state.part === "A" ? b : a).classList.add("blink");
-}
-function updateFillLed() {
-  $("fillLed").className = "led" + (state.fillQueued ? " blink" : state.barIsFill && state.running ? " on" : "");
+  resetDot();
 }
 
 /* --- transport-acties --- */
@@ -756,67 +821,33 @@ function mainAction() {
 function fillAction() {
   if (state.phase !== "playing" || state.preview) return;
   state.fillQueued = true;
-  updateFillLed();
+  updateTransportUI();
 }
 function partAction() {
-  if (state.preview) return;
-  if (state.phase !== "playing") {
-    if (!state.running) { state.part = state.part === "A" ? "B" : "A"; updatePartBtn(); }
+  if (state.preview || state.phase !== "playing") return;
+  if (state.partQueued) {
+    // wissel annuleren: meteen terug naar de maat die al speelde
+    state.partQueued = false;
+    state.currentGrid = style()[state.part] || {};
+    state.barIsFill = false;
+    updateTransportUI();
     return;
   }
-  if (state.partQueued) return; // wissel is al onderweg
   state.partQueued = true;
   state.fillQueued = false;
   // meteen (desnoods midden in de maat) een random fill in, niet pas volgende ronde
   state.currentGrid = pickFill(style());
   state.barIsFill = true;
-  updatePartBtn();
-  updateFillLed();
-  setStatus(`<span class="fill-flash">FILL</span>`);
-}
-// part-knoppen A/B: tik op de niet-actieve om te wisselen (of een wachtende wissel te annuleren)
-function requestPart(p) {
-  if (state.preview) return;
-  if (state.partQueued && state.part === p) {
-    // wissel annuleren: meteen terug naar de maat die al speelde
-    state.partQueued = false;
-    state.currentGrid = style()[state.part] || {};
-    state.barIsFill = false;
-    updatePartBtn();
-    updateFillLed();
-    setStatus(`Speelt — deel ${state.part}`);
-    return;
-  }
-  if (state.part === p) return;
-  partAction();
+  updateTransportUI();
 }
 
 $("startBtn").onclick = mainAction;
-fillBtn.onclick = fillAction;
-$("partABtn").onclick = () => requestPart("A");
-$("partBBtn").onclick = () => requestPart("B");
-$("bpmUp").onclick = () => setBpm(state.bpm + 2);
-$("bpmDown").onclick = () => setBpm(state.bpm - 2);
-knobDrag($("dial"), () => state.bpm, setBpm, 40, 220, 0.5);
-knobDrag($("swingKnob"), () => state.swing, setSwing, 0, 100, 0.5);
-knobDrag($("humKnob"), () => state.humanize, setHumanize, 0, 100, 0.5);
-knobDrag($("volKnob"), () => state.volume, setVolume, 0, 100, 0.6);
-
-/* --- drumkit-keuze --- */
-function buildKitSelect() {
-  const sel = $("kitSelect");
-  sel.innerHTML = "";
-  for (const k of KITS) {
-    const o = document.createElement("option");
-    o.value = k.id; o.textContent = k.name;
-    sel.appendChild(o);
-  }
-  sel.value = kitId;
-  sel.onchange = () => {
-    kitId = sel.value;
-    lsSet("folkbeat.kit", kitId);
-  };
-}
+$("fillBtn").onclick = fillAction;
+$("partBtn").onclick = partAction;
+holdRepeat($("bpmUp"), () => setBpm(state.bpm + 1));
+holdRepeat($("bpmDown"), () => setBpm(state.bpm - 1));
+holdRepeat($("ipadBpmUp"), () => setBpm(state.bpm + 1));
+holdRepeat($("ipadBpmDown"), () => setBpm(state.bpm - 1));
 
 /* --- tap tempo --- */
 let taps = [];
@@ -830,103 +861,80 @@ $("tapBtn").onclick = () => {
     setBpm(60000 / (iv.reduce((a, b) => a + b) / iv.length));
   }
 };
+$("ipadTap").onclick = $("tapBtn").onclick;
 
 /* ============================================================
    SETLIST
    ============================================================ */
 let songIdx = -1;
-let editIdx = -1; // regel die in de setlist bewerkt wordt
+let dragIdx = -1;
 
 function saveSetlist() { lsSet("folkbeat.setlist", setlist); }
 
 function renderSetlist() {
   const wrap = $("setlistRows");
   wrap.innerHTML = "";
+  if (!setlist.length) {
+    const p = document.createElement("p");
+    p.id = "setlistEmpty";
+    p.textContent = "Nog geen nummers — voeg het eerste toe met “+ Nummer”.";
+    wrap.appendChild(p);
+  }
   setlist.forEach((song, i) => {
+    const st = styleById(song.styleId);
     const row = document.createElement("div");
-    row.className = "song-row" + (i === songIdx ? " current" : "") + (i === editIdx ? " editing" : "");
-    if (i === editIdx) {
-      buildSongEditRow(row, song, i);
-    } else {
-      buildSongRow(row, song, i);
-    }
+    row.className = "song-row" + (i === songIdx ? " current" : "") + (i === dragIdx ? " dragging" : "");
+    row.innerHTML = `
+      <div class="info">
+        <div class="name">${escapeHtml(song.name)}</div>
+        <div class="meta"><span class="groove">${st ? escapeHtml(st.name) : "⚠ groove weg"}</span><span class="bpm">${song.bpm} BPM</span></div>
+      </div>
+      <button class="edit" title="Bewerken">✎</button>
+      <div class="grip" title="Sleep om te verplaatsen">⠿</div>`;
+    row.onclick = () => loadSong(i);
+    row.querySelector(".edit").onclick = (e) => { e.stopPropagation(); openSongSheet(i); };
+    const grip = row.querySelector(".grip");
+    grip.onclick = (e) => e.stopPropagation();
+    grip.addEventListener("pointerdown", (e) => startDrag(e, i));
     wrap.appendChild(row);
   });
   renderSongBar();
 }
 
-function buildSongRow(row, song, i) {
-  const st = styleById(song.styleId);
-  row.innerHTML = `<span class="num">${i + 1}</span>
-    <span class="info"><b>${escapeHtml(song.name)}</b>
-    <small>${st ? st.name + " " + sigOf(st) : "⚠ groove verwijderd"} · ${song.bpm} BPM</small></span>`;
-  row.onclick = () => loadSong(i);
-  const mk = (txt, fn, cls = "") => {
-    const b = document.createElement("button");
-    b.textContent = txt; b.className = cls;
-    b.onclick = (e) => { e.stopPropagation(); fn(); };
-    row.appendChild(b);
-  };
-  mk("✎", () => { editIdx = i; renderSetlist(); });
-  mk("▲", () => moveSong(i, -1));
-  mk("▼", () => moveSong(i, +1));
-  mk("✕", () => { setlist.splice(i, 1); if (editIdx === i) editIdx = -1; if (songIdx >= setlist.length) songIdx = setlist.length - 1; saveSetlist(); renderSetlist(); });
-}
-
-function buildSongEditRow(row, song, i) {
-  const name = document.createElement("input");
-  name.value = song.name; name.maxLength = 40; name.className = "e-name";
-
-  const sel = document.createElement("select");
-  for (const s of allStyles()) {
-    const o = document.createElement("option");
-    o.value = s.id;
-    o.textContent = (s.custom ? "★ " : "") + s.name + " " + sigOf(s);
-    sel.appendChild(o);
-  }
-  if (styleById(song.styleId)) sel.value = song.styleId;
-
-  const bpm = document.createElement("input");
-  bpm.type = "number"; bpm.min = 40; bpm.max = 220; bpm.value = song.bpm; bpm.className = "e-bpm";
-
-  // nieuwe groove gekozen → standaardtempo van die groove voorstellen
-  sel.onchange = () => { const st = styleById(sel.value); if (st) bpm.value = st.bpm; };
-
-  const swing = document.createElement("input");
-  swing.type = "number"; swing.min = 0; swing.max = 100; swing.step = 5;
-  swing.value = song.swing ?? 0; swing.className = "e-swing"; swing.title = "Swing %";
-
-  const ok = document.createElement("button");
-  ok.textContent = "✓"; ok.className = "ok";
-  ok.onclick = () => {
-    song.name = name.value.trim() || song.name;
-    song.styleId = sel.value;
-    song.bpm = Math.min(220, Math.max(40, +bpm.value || song.bpm));
-    song.swing = Math.min(100, Math.max(0, +swing.value || 0));
-    editIdx = -1;
-    saveSetlist();
-    if (i === songIdx) { // dit nummer staat in de speler: meteen doorvoeren
-      const st = styleById(song.styleId);
-      if (st) selectStyleById(st.id);
-      setBpm(song.bpm);
-      setSwing(song.swing);
+/* slepen om te herordenen */
+function startDrag(e, i) {
+  e.preventDefault();
+  dragIdx = i;
+  renderSetlist();
+  const move = (ev) => {
+    const rows = [...$("setlistRows").querySelectorAll(".song-row")];
+    let to = dragIdx;
+    rows.forEach((r, j) => {
+      const rect = r.getBoundingClientRect();
+      if (j < dragIdx && ev.clientY < rect.top + rect.height / 2) to = Math.min(to, j);
+      if (j > dragIdx && ev.clientY > rect.top + rect.height / 2) to = Math.max(to, j);
+    });
+    if (to !== dragIdx) {
+      const [s] = setlist.splice(dragIdx, 1);
+      setlist.splice(to, 0, s);
+      if (songIdx === dragIdx) songIdx = to;
+      else if (dragIdx < songIdx && to >= songIdx) songIdx--;
+      else if (dragIdx > songIdx && to <= songIdx) songIdx++;
+      dragIdx = to;
+      renderSetlist();
     }
+  };
+  const up = () => {
+    document.removeEventListener("pointermove", move);
+    document.removeEventListener("pointerup", up);
+    dragIdx = -1;
+    saveSetlist();
     renderSetlist();
   };
-  const cancel = document.createElement("button");
-  cancel.textContent = "✕";
-  cancel.onclick = () => { editIdx = -1; renderSetlist(); };
+  document.addEventListener("pointermove", move);
+  document.addEventListener("pointerup", up);
+}
 
-  row.append(name, sel, bpm, swing, ok, cancel);
-  row.onclick = (e) => e.stopPropagation();
-}
-function moveSong(i, d) {
-  const j = i + d;
-  if (j < 0 || j >= setlist.length) return;
-  [setlist[i], setlist[j]] = [setlist[j], setlist[i]];
-  if (songIdx === i) songIdx = j; else if (songIdx === j) songIdx = i;
-  saveSetlist(); renderSetlist();
-}
 function loadSong(i) {
   if (i < 0 || i >= setlist.length) return;
   songIdx = i;
@@ -935,6 +943,7 @@ function loadSong(i) {
   if (st) selectStyleById(st.id);
   setBpm(song.bpm);
   setSwing(song.swing ?? 0);
+  setHumanize(song.hum ?? 0);
   renderSetlist();
   showView("player");
 }
@@ -947,17 +956,22 @@ function renderSongBar() {
   bar.hidden = setlist.length === 0;
   const song = songIdx >= 0 ? setlist[songIdx] : null;
   if (song) {
-    const st = styleById(song.styleId);
-    $("songName").textContent = `${songIdx + 1}. ${song.name}`;
-    $("songMeta").textContent = (st ? st.name + " · " : "") + song.bpm + " BPM";
+    $("songName").textContent = song.name;
+    $("songPos").textContent = `${songIdx + 1} / ${setlist.length}`;
   } else {
     $("songName").textContent = "Setlist";
-    $("songMeta").textContent = setlist.length + " nummers — tik ▶ voor het eerste";
+    $("songPos").textContent = `${setlist.length} nummers — tik › voor het eerste`;
   }
-  // tempo, groove of swing in de speler afwijkend? Toon de bewaarknop
-  const dirty = song && (song.bpm !== state.bpm || song.styleId !== state.styleId
-    || (song.swing ?? 0) !== state.swing);
-  $("saveSongBtn").hidden = !dirty;
+  // afwijkend van het geladen nummer? Toon de bewaarbalk met wat er anders is
+  const diffs = [];
+  if (song) {
+    if (song.bpm !== state.bpm) diffs.push("tempo");
+    if (song.styleId !== state.styleId) diffs.push("groove");
+    if ((song.swing ?? 0) !== state.swing) diffs.push("swing");
+    if ((song.hum ?? 0) !== state.humanize) diffs.push("humanize");
+  }
+  $("dirtyBar").hidden = diffs.length === 0;
+  $("dirtyText").textContent = "Gewijzigd: " + diffs.join(", ");
 }
 $("saveSongBtn").onclick = () => {
   const song = setlist[songIdx];
@@ -965,43 +979,86 @@ $("saveSongBtn").onclick = () => {
   song.bpm = state.bpm;
   song.styleId = state.styleId;
   song.swing = state.swing;
+  song.hum = state.humanize;
   saveSetlist();
   renderSetlist();
 };
 $("prevSongBtn").onclick = () => stepSong(-1);
 $("nextSongBtn").onclick = () => stepSong(+1);
 
-function buildSongStyleSelect() {
-  const sel = $("songStyle");
-  sel.innerHTML = "";
-  for (const s of allStyles()) {
-    const o = document.createElement("option");
-    o.value = s.id;
-    o.textContent = (s.custom ? "★ " : "") + s.name + " " + sigOf(s);
-    sel.appendChild(o);
-  }
-  $("songBpm").value = allStyles()[0]?.bpm ?? 110;
-}
-$("songStyle").onchange = () => {
-  const st = styleById($("songStyle").value);
-  if (st) $("songBpm").value = st.bpm;
-};
-$("addSongForm").onsubmit = (e) => {
-  e.preventDefault();
-  const name = $("songNameInput").value.trim();
-  if (!name) return;
-  setlist.push({
-    name,
-    styleId: $("songStyle").value,
-    bpm: Math.min(220, Math.max(40, +$("songBpm").value || 110)),
-  });
-  $("songNameInput").value = "";
-  saveSetlist(); renderSetlist();
-};
+/* --- nummer-sheet (toevoegen & bewerken) --- */
+let sheetSongIdx = -1; // -1 = nieuw nummer
+const sng = { styleId: "reel", bpm: 110, swing: 0, hum: 0 };
 
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function openSongSheet(i) {
+  sheetSongIdx = i;
+  const song = i >= 0 ? setlist[i] : null;
+  $("songSheetTitle").textContent = song ? "Nummer bewerken" : "Nummer toevoegen";
+  $("sngName").value = song ? song.name : "";
+  sng.styleId = song ? song.styleId : state.styleId;
+  if (!styleById(sng.styleId)) sng.styleId = BUILTIN_STYLES[0].id;
+  sng.bpm = song ? song.bpm : (styleById(sng.styleId)?.bpm ?? 110);
+  sng.swing = song ? (song.swing ?? 0) : 0;
+  sng.hum = song ? (song.hum ?? 0) : 0;
+  $("sngDelete").hidden = !song;
+  syncSongSheet();
+  openSheet($("songSheet"));
 }
+function syncSongSheet() {
+  $("sngBpm").textContent = sng.bpm;
+  $("sngSwing").value = sng.swing;
+  $("sngSwingVal").textContent = sng.swing + "%";
+  $("sngHum").value = sng.hum;
+  $("sngHumVal").textContent = sng.hum + "%";
+  const wrap = $("sngStyles");
+  wrap.innerHTML = "";
+  for (const s of allStyles()) {
+    const b = document.createElement("button");
+    b.className = "chip" + (s.id === sng.styleId ? " active" : "");
+    b.innerHTML = (s.custom ? '<span class="star">★</span> ' : "") + escapeHtml(s.name);
+    b.onclick = () => {
+      sng.styleId = s.id;
+      sng.bpm = s.bpm; // standaardtempo van de gekozen groove voorstellen
+      syncSongSheet();
+    };
+    wrap.appendChild(b);
+  }
+}
+holdRepeat($("sngBpmUp"), () => { sng.bpm = Math.min(220, sng.bpm + 1); $("sngBpm").textContent = sng.bpm; });
+holdRepeat($("sngBpmDown"), () => { sng.bpm = Math.max(40, sng.bpm - 1); $("sngBpm").textContent = sng.bpm; });
+$("sngSwing").oninput = (e) => { sng.swing = +e.target.value; $("sngSwingVal").textContent = sng.swing + "%"; };
+$("sngHum").oninput = (e) => { sng.hum = +e.target.value; $("sngHumVal").textContent = sng.hum + "%"; };
+
+$("sngSave").onclick = () => {
+  const name = $("sngName").value.trim();
+  if (!name) { $("sngName").focus(); return; }
+  const data = { name, styleId: sng.styleId, bpm: sng.bpm, swing: sng.swing, hum: sng.hum };
+  if (sheetSongIdx >= 0) {
+    Object.assign(setlist[sheetSongIdx], data);
+    if (sheetSongIdx === songIdx) { // dit nummer staat in de speler: meteen doorvoeren
+      selectStyleById(data.styleId);
+      setBpm(data.bpm);
+      setSwing(data.swing);
+      setHumanize(data.hum);
+    }
+  } else {
+    setlist.push(data);
+  }
+  saveSetlist();
+  renderSetlist();
+  closeSheets();
+};
+$("sngDelete").onclick = () => {
+  if (sheetSongIdx < 0) return;
+  if (!confirm(`“${setlist[sheetSongIdx].name}” uit de setlist verwijderen?`)) return;
+  setlist.splice(sheetSongIdx, 1);
+  if (songIdx === sheetSongIdx) songIdx = -1;
+  else if (songIdx > sheetSongIdx) songIdx--;
+  saveSetlist();
+  renderSetlist();
+  closeSheets();
+};
+$("addSongBtn").onclick = () => openSongSheet(-1);
 
 /* ============================================================
    GROOVE-EDITOR
@@ -1039,8 +1096,7 @@ function edFromStyle(st) {
 }
 function syncEditorFields() {
   $("edName").value = ed.name;
-  $("edBeats").value = ed.beats;
-  $("edSpb").value = ed.spb;
+  $("edSig").value = ed.beats + "x" + ed.spb;
   $("edBpm").value = ed.bpm;
   $("edDelete").hidden = !ed.id;
   document.querySelectorAll("#edParts button").forEach(b => b.classList.toggle("active", b.dataset.part === edPart));
@@ -1067,23 +1123,26 @@ $("edLoad").onclick = () => {
   else { const st = styleById(v); if (st) edFromStyle(st); }
 };
 
-function beatsOptions() {
-  const sel = $("edBeats");
+function buildSigOptions() {
+  const sel = $("edSig");
   sel.innerHTML = "";
-  for (let b = 2; b <= 6; b++) {
-    const o = document.createElement("option");
-    o.value = b; o.textContent = b;
-    sel.appendChild(o);
+  const labels = { 2: "8sten", 3: "triolen", 4: "16den" };
+  for (const spb of [2, 3, 4]) {
+    for (let b = 2; b <= 6; b++) {
+      const o = document.createElement("option");
+      o.value = b + "x" + spb;
+      o.textContent = `${b} × ${labels[spb]}`;
+      sel.appendChild(o);
+    }
   }
 }
-function edResize() {
-  ed.beats = +$("edBeats").value;
-  ed.spb = +$("edSpb").value;
+$("edSig").onchange = () => {
+  const [b, spb] = $("edSig").value.split("x").map(Number);
+  ed.beats = b;
+  ed.spb = spb;
   materialize(ed);
   renderGrid();
-}
-$("edBeats").onchange = edResize;
-$("edSpb").onchange = edResize;
+};
 $("edName").oninput = () => { ed.name = $("edName").value; };
 $("edBpm").onchange = () => {
   ed.bpm = Math.min(220, Math.max(40, +$("edBpm").value || 110));
@@ -1101,30 +1160,40 @@ document.querySelectorAll("#edParts button").forEach(b => {
 
 function renderGrid() {
   const grid = $("edGrid");
-  const len = ed.beats * ed.spb;
-  grid.style.gridTemplateColumns = `auto repeat(${len}, 30px)`;
   grid.innerHTML = "";
   for (const [inst, label] of ED_INSTRUMENTS) {
+    const line = document.createElement("div");
+    line.className = "ed-line";
     const lab = document.createElement("div");
     lab.className = "ed-label"; lab.textContent = label;
-    grid.appendChild(lab);
-    for (let i = 0; i < len; i++) {
-      const cell = document.createElement("div");
-      cell.className = "ed-cell" + (i % ed.spb === 0 ? " beat-start" : "");
-      cell.dataset.step = i;
-      const v = ed[edPart][inst][i];
-      if (v) cell.dataset.v = String(v);
-      cell.onclick = () => {
-        const cur = ed[edPart][inst][i] || 0;
-        const idx = VELOCITY_STEPS.indexOf(cur);
-        const next = VELOCITY_STEPS[(idx + 1) % VELOCITY_STEPS.length];
-        ed[edPart][inst][i] = next;
-        if (next) cell.dataset.v = String(next); else delete cell.dataset.v;
-        // meteen even horen wat je aanzet
-        if (next && !state.running) { initAudio(); ctx.resume(); playInstrument(inst, ctx.currentTime, next); }
-      };
-      grid.appendChild(cell);
+    line.appendChild(lab);
+    const beats = document.createElement("div");
+    beats.className = "ed-beats";
+    for (let b = 0; b < ed.beats; b++) {
+      const group = document.createElement("div");
+      group.className = "ed-beat";
+      for (let j = 0; j < ed.spb; j++) {
+        const i = b * ed.spb + j;
+        const cell = document.createElement("div");
+        cell.className = "ed-cell";
+        cell.dataset.step = i;
+        const v = ed[edPart][inst][i];
+        if (v) cell.dataset.v = String(v);
+        cell.onclick = () => {
+          const cur = ed[edPart][inst][i] || 0;
+          const idx = VELOCITY_STEPS.indexOf(cur);
+          const next = VELOCITY_STEPS[(idx + 1) % VELOCITY_STEPS.length];
+          ed[edPart][inst][i] = next;
+          if (next) cell.dataset.v = String(next); else delete cell.dataset.v;
+          // meteen even horen wat je aanzet
+          if (next && !state.running) { initAudio(); ctx.resume(); playInstrument(inst, ctx.currentTime, next); }
+        };
+        group.appendChild(cell);
+      }
+      beats.appendChild(group);
     }
+    line.appendChild(beats);
+    grid.appendChild(line);
   }
 }
 function drawPlayhead(step) {
@@ -1140,12 +1209,17 @@ $("edPreview").onclick = () => {
   if (state.running) stopNow();
   setBpm(ed.bpm);
   start({ preview: true });
-  updatePreviewBtn();
 };
 function updatePreviewBtn() {
   const b = $("edPreview");
-  b.textContent = state.preview ? "■ Stop" : "▶ Beluister";
+  b.textContent = state.preview ? "■" : "▶";
   b.classList.toggle("on", state.preview);
+}
+
+function edFlash(msg) {
+  const el = $("edMsg");
+  el.textContent = msg;
+  setTimeout(() => { el.textContent = ""; }, 3000);
 }
 
 $("edSave").onclick = () => {
@@ -1166,9 +1240,15 @@ $("edSave").onclick = () => {
   rebuildStyleLists();
   $("edSource").value = ed.id;
   $("edDelete").hidden = false;
-  const msg = $("edMsg");
-  msg.textContent = wasNew ? "Opgeslagen ✓ — staat nu tussen de grooves" : "Opgeslagen ✓";
-  setTimeout(() => { msg.textContent = ""; }, 3000);
+  edFlash(wasNew ? "Opgeslagen ✓ — staat nu tussen de grooves" : "Opgeslagen ✓");
+};
+
+$("edCopy").onclick = () => {
+  ed = JSON.parse(JSON.stringify(ed));
+  ed.id = null;
+  ed.name = (ed.name || "Mijn groove") + " (kopie)";
+  syncEditorFields();
+  edFlash("Kopie gemaakt — sla op om te bewaren");
 };
 
 $("edDelete").onclick = () => {
@@ -1183,7 +1263,6 @@ $("edDelete").onclick = () => {
 
 function rebuildStyleLists() {
   buildStyles();
-  buildSongStyleSelect();
   buildEdSource();
   renderSetlist();
 }
@@ -1193,6 +1272,7 @@ function rebuildStyleLists() {
    ============================================================ */
 document.addEventListener("keydown", (e) => {
   if (e.repeat) return;
+  if (e.code === "Escape") { closeSheets(); return; }
   const tag = e.target.tagName;
   if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
   switch (e.code) {
@@ -1224,10 +1304,10 @@ if ("serviceWorker" in navigator && location.protocol !== "file:") {
 /* ============================================================
    OPSTARTEN
    ============================================================ */
-beatsOptions();
+buildSigOptions();
 kitId = lsGet("folkbeat.kit", "acoustic");
 if (!KITS.some(k => k.id === kitId)) kitId = "acoustic";
-buildKitSelect();
+buildKitChips();
 const last = lsGet("folkbeat.last", null);
 if (last && styleById(last.styleId)) {
   state.styleId = last.styleId;
@@ -1240,8 +1320,8 @@ selectStyleById(state.styleId);
 setBpm(state.bpm);
 setVolume(lsGet("folkbeat.volume", 90));
 syncPerfControls();
-updateMainBtn();
-updatePartBtn();
+buildBeatSegs();
+updateTransportUI();
 edNew();
-setStatus("Samples laden…");
+startIdleBlink();
 loadSamples();

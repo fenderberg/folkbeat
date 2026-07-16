@@ -36,12 +36,23 @@ Bluetooth page-turner-pedalen (AirTurn e.d.) sturen PgUp/PgDn of pijltjestoetsen
 ```
 index.html            Opmaak en styling (drie tabbladen: Speler, Setlist, Grooves)
 app.js                Alle logica: sequencer, sample-engine, kits, setlist, editor
+skins/                Optionele CSS-skins; de moderne layout blijft de basis
 sw.js                 Service worker (app network-first, samples cache-first)
 manifest.webmanifest  PWA-manifest
 icon.svg              App-icoon
 samples/              67 drumsamples (mono-mp3, ±1,9 MB totaal)
 PRD.md                Productbeschrijving en roadmap
 ```
+
+## Skins
+
+De keuzelijst rechtsboven wisselt tussen de standaard **Modern**-skin en **Electribe**. De keuze wordt lokaal onthouden. Skins veranderen alleen de presentatie; `index.html` en de moderne responsive layout blijven leidend.
+
+Een extra skin toevoegen:
+
+1. Maak `skins/<naam>.css` met selectors onder `html[data-skin="<naam>"]`.
+2. Voeg de optie toe aan `#skinSelect` in `index.html` en aan `known` in `applySkin()` in `app.js`.
+3. Voeg het stylesheet toe aan `index.html` en aan `ASSETS` in `sw.js` voor offline gebruik.
 
 ## Grooves en kits toevoegen
 

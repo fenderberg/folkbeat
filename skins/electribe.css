@@ -1,0 +1,204 @@
+/*
+ * FolkBeat Electribe skin
+ *
+ * De skin verandert uitsluitend presentatie. De moderne DOM, touch targets,
+ * responsive indeling en alle interacties blijven de bron van waarheid.
+ */
+
+html[data-skin="electribe"] {
+  --bg: #aeb2ba;
+  --surface: #c9ccd2;
+  --surface-2: #e8e9ec;
+  --border: #777c85;
+  --text: #20242a;
+  --text-dim: #505660;
+  --accent: #ff4b3e;
+  --accent-ink: #240706;
+  --play: #7dff9a;
+  --play-ink: #0f1a11;
+  --fill: #e49ba6;
+  --fill-ink: #321014;
+  --danger: #b72e37;
+  --shadow: 0 3px 0 rgb(0 0 0 / .38), inset 0 1px 1px rgb(255 255 255 / .8);
+  color-scheme: light;
+}
+
+html[data-skin="electribe"] body {
+  background:
+    linear-gradient(115deg, transparent 0 48%, rgb(255 255 255 / .09) 49% 51%, transparent 52%) 0 0 / 18px 18px,
+    linear-gradient(155deg, #d8dade 0%, #b2b6be 55%, #8b8f98 100%) fixed;
+  color: var(--text);
+  font-family: "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  box-shadow: inset 0 0 0 2px rgb(255 255 255 / .35), inset 0 0 32px rgb(0 0 0 / .22);
+}
+
+html[data-skin="electribe"] body::before,
+html[data-skin="electribe"] body::after {
+  content: "";
+  position: fixed;
+  top: 7px;
+  z-index: 100;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    linear-gradient(33deg, transparent 44%, #454950 45% 55%, transparent 56%),
+    radial-gradient(circle at 34% 30%, #f2f2f2, #9a9ea6 55%, #565a62);
+  box-shadow: inset 0 -1px 2px rgb(0 0 0 / .5), 0 1px 1px rgb(255 255 255 / .6);
+}
+html[data-skin="electribe"] body::before { left: 8px; }
+html[data-skin="electribe"] body::after { right: 8px; }
+
+html[data-skin="electribe"] #tabs,
+html[data-skin="electribe"] #appearanceControls {
+  background: linear-gradient(180deg, #2a2d32, #17191d);
+  border: 1px solid #0b0c0e;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / .8), 0 1px 1px rgb(255 255 255 / .55);
+}
+
+html[data-skin="electribe"] #tabs button,
+html[data-skin="electribe"] #themeToggle,
+html[data-skin="electribe"] #skinSelect {
+  color: #c4c8d0;
+  border-color: #3e4249;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #3b3e45, #23262b);
+  box-shadow: 0 2px 0 rgb(0 0 0 / .5), inset 0 1px 1px rgb(255 255 255 / .12);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+html[data-skin="electribe"] #tabs button.active {
+  color: #ff7a6f;
+  background: linear-gradient(180deg, #4b4e55, #2b2e34);
+  box-shadow: 0 2px 0 rgb(0 0 0 / .5), inset 0 0 0 1px rgb(255 75 62 / .4);
+}
+
+html[data-skin="electribe"] #stageCard,
+html[data-skin="electribe"] #ipadControls,
+html[data-skin="electribe"] #edGridWrap {
+  background: linear-gradient(165deg, #43848c, #2e6b72 46%, #1d4a50);
+  border: 1px solid #173e43;
+  border-radius: 9px;
+  box-shadow: inset 0 1px 2px rgb(255 255 255 / .35), inset 0 -3px 6px rgb(0 0 0 / .35), 0 2px 1px rgb(255 255 255 / .45);
+}
+
+html[data-skin="electribe"] #bpmRow {
+  min-width: 190px;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 7px;
+  background: linear-gradient(180deg, #17090a, #240b0c 60%, #17090a);
+  box-shadow: inset 0 3px 9px rgb(0 0 0 / .95), 0 1px 1px rgb(255 255 255 / .35);
+}
+
+html[data-skin="electribe"] #bpmBig {
+  color: #ff3b2f;
+  font-family: "Courier New", monospace;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-shadow: 0 0 8px rgb(255 51 38 / .9), 0 0 18px rgb(255 51 38 / .45);
+}
+
+html[data-skin="electribe"] #beatDot {
+  background: #571114;
+  box-shadow: inset 0 1px 1px rgb(0 0 0 / .8);
+}
+html[data-skin="electribe"] #beatDot.pulse {
+  background: #ff3326;
+  box-shadow: 0 0 9px rgb(255 51 38 / .95);
+}
+
+html[data-skin="electribe"] #bpmCap,
+html[data-skin="electribe"] #stageCard .cap,
+html[data-skin="electribe"] #grooveSec .cap,
+html[data-skin="electribe"] #ipadControls .cap {
+  color: #e8f2f2;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .13em;
+}
+
+html[data-skin="electribe"] #stateBand {
+  border: 1px solid rgb(0 0 0 / .5);
+  border-radius: 5px;
+  background: #182528;
+  color: #9fb3b5;
+  box-shadow: inset 0 2px 5px rgb(0 0 0 / .8), 0 1px 1px rgb(255 255 255 / .18);
+  font-family: "Courier New", monospace;
+  text-shadow: 0 0 5px currentColor;
+}
+html[data-skin="electribe"] #stateBand.playing { background: #0f1a11; color: #7dff9a; }
+html[data-skin="electribe"] #stateBand.fill { background: #2c1015; color: #ff7b8b; }
+
+html[data-skin="electribe"] #beatRow .seg,
+html[data-skin="electribe"] .ed-cell {
+  border: 1px solid rgb(0 0 0 / .4);
+  border-radius: 5px;
+  background: linear-gradient(180deg, #eceded, #b9bcc4);
+  box-shadow: 0 2px 0 rgb(0 0 0 / .35), inset 0 1px 1px rgb(255 255 255 / .85);
+}
+html[data-skin="electribe"] #beatRow .seg.on,
+html[data-skin="electribe"] .ed-cell[data-v="1"] {
+  background: linear-gradient(180deg, #ff6458, #d82f26);
+  box-shadow: 0 0 8px rgb(255 51 38 / .75), inset 0 1px 1px rgb(255 255 255 / .55);
+}
+html[data-skin="electribe"] .ed-cell[data-v="0.5"] { background: linear-gradient(180deg, #f2c7cd, #d898a2); }
+
+html[data-skin="electribe"] .chip,
+html[data-skin="electribe"] #tempoCluster,
+html[data-skin="electribe"] #ipadControls button,
+html[data-skin="electribe"] .segmented,
+html[data-skin="electribe"] .chipBtn,
+html[data-skin="electribe"] .chipSelect {
+  border: 1px solid rgb(0 0 0 / .35);
+  border-radius: 5px;
+  background: linear-gradient(180deg, #f4f5f7, #c9ccd3);
+  color: #22262b;
+  box-shadow: 0 2px 0 rgb(0 0 0 / .35), inset 0 1px 1px rgb(255 255 255 / .9);
+}
+html[data-skin="electribe"] .chip.active,
+html[data-skin="electribe"] .segmented button.active {
+  background: linear-gradient(180deg, #f2c7cd, #d898a2);
+  color: #321014;
+}
+
+html[data-skin="electribe"] #transport button {
+  border-radius: 8px;
+  color: #22262b;
+  text-shadow: 0 1px 0 rgb(255 255 255 / .5);
+  box-shadow: 0 4px 0 rgb(0 0 0 / .42), inset 0 1px 1px rgb(255 255 255 / .9);
+}
+html[data-skin="electribe"] #startBtn {
+  border-color: #878b94;
+  background: linear-gradient(180deg, #f4f5f7, #b9bdc5);
+  box-shadow: 0 5px 0 rgb(0 0 0 / .45), inset 0 1px 2px rgb(255 255 255 / .95), 0 0 0 4px rgb(255 255 255 / .22);
+}
+html[data-skin="electribe"] #startBtn .tri { border-left-color: #22262b; }
+html[data-skin="electribe"] #startBtn.playing {
+  border-color: #4b8057;
+  background: linear-gradient(180deg, #bfe8c8, #7dbb8c);
+}
+html[data-skin="electribe"] #partBtn { border-color: #8e6670; background: linear-gradient(180deg, #f2c7cd, #d898a2); }
+html[data-skin="electribe"] #partBtn .letter { color: #7d1721; }
+html[data-skin="electribe"] #fillBtn { border-color: #8e6670; background: linear-gradient(180deg, #efd2d6, #cf929c); color: #7d1721; }
+
+html[data-skin="electribe"] .song-row,
+html[data-skin="electribe"] .sheet,
+html[data-skin="electribe"] #dirtyBar {
+  border-color: #777c85;
+  background: linear-gradient(180deg, rgb(244 245 247 / .94), rgb(195 198 205 / .94));
+  color: #22262b;
+}
+
+html[data-skin="electribe"] input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to right, #ff3b2f 0 var(--range-pct), #535861 var(--range-pct) 100%);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / .65);
+}
+
+@media (max-width: 620px) {
+  html[data-skin="electribe"] #appearanceControls { background: transparent; border: 0; box-shadow: none; }
+  html[data-skin="electribe"] #skinSelect { min-width: 78px; padding-inline: 7px; }
+}
