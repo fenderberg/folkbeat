@@ -261,8 +261,14 @@
   #partBtn.queued .letter { color: var(--fill); }
 
   /* ================= SETLIST ================= */
-  #view-setlist h2 { padding: 16px 20px 8px; font-size: 22px; font-weight: 600; flex-shrink: 0; }
-  #setlistRows { flex: 1; overflow-y: auto; min-height: 0; }
+  #setlistHead { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 8px; flex-shrink: 0; }
+  #view-setlist h2 { font-size: 22px; font-weight: 600; }
+  #cloudStatus { font-size: 11px; color: var(--text-dim); }
+  #cloudStatus.online { color: var(--play); }
+  #cloudStatus.error { color: var(--fill); }
+  #setlistMode { align-self: center; margin: 0 20px 8px; flex-shrink: 0; }
+  #setlistRows, #publicSongRows { flex: 1; overflow-y: auto; min-height: 0; }
+  #setlistRows[hidden], #publicSongRows[hidden] { display: none; }
   .song-row {
     display: flex; align-items: center; gap: 10px; cursor: pointer;
     padding: 12px 16px; border-bottom: 1px solid var(--border); min-height: 64px;
@@ -286,6 +292,17 @@
     color: var(--text-dim); font-size: 18px; letter-spacing: 2px;
   }
   #setlistEmpty { padding: 24px 20px; font-size: 15px; color: var(--text-dim); }
+  #publicSongEmpty { padding: 24px 20px; font-size: 15px; color: var(--text-dim); }
+  .song-row .publicAdd {
+    min-width: 92px; height: 42px; padding: 0 12px; border-radius: 12px;
+    background: var(--accent); color: var(--accent-ink); font-size: 12px; font-weight: 800;
+  }
+  .song-row .publicDelete {
+    width: 42px; height: 42px; border-radius: 12px; background: var(--surface-2);
+    color: var(--danger); font-size: 16px; font-weight: 800;
+  }
+  .song-row .publicActions { display: flex; align-items: center; gap: 6px; }
+  .song-row .ownerMark { font-size: 11px; color: var(--accent); font-weight: 700; }
   .bottomBtnWrap { padding: 12px 16px calc(20px + env(safe-area-inset-bottom)); flex-shrink: 0; }
   #addSongBtn {
     width: 100%; height: 52px; border-radius: var(--radius-m);
@@ -402,6 +419,12 @@
 
   @media (max-width: 620px) {
     .ed-cell { height: 44px; aspect-ratio: auto; }
+    #edRhythmControls { gap: 6px; flex-wrap: nowrap; width: 100%; }
+    #edRhythmControls .chipSelect { padding: 8px 9px; font-size: 12px; }
+    #edRhythmControls .edTempo { gap: 3px; }
+    #edRhythmControls .edTempo .cap { padding-inline: 3px; font-size: 10px; }
+    #edRhythmControls .edTempo button { width: 30px; height: 32px; }
+    #edRhythmControls .edTempo input { width: 38px; font-size: 14px; }
     #view-editor.focus-mode #edTop,
     #view-editor.focus-mode #edRhythmControls,
     #view-editor.focus-mode #edSettings,
@@ -542,7 +565,7 @@
     #startBtn .tri { border-top-width: 20px; border-bottom-width: 20px; border-left-width: 33px; }
 
     #view-setlist { padding: 20px 7vw 24px; }
-    #view-setlist h2 { padding: 8px 20px 18px; font-size: 28px; }
+    #view-setlist h2 { font-size: 28px; }
     .song-row { min-height: 76px; padding: 14px 20px; border-radius: 14px; }
     #setlistRows { display: flex; flex-direction: column; gap: 4px; }
     .bottomBtnWrap { padding-bottom: 0; }
@@ -679,8 +702,13 @@
 </main>
 
 <main id="view-setlist" hidden>
-  <h2>Setlist</h2>
+  <div id="setlistHead"><h2>Setlist</h2><span id="cloudStatus">Alleen lokaal</span></div>
+  <div id="setlistMode" class="segmented">
+    <button data-setlist-mode="local" class="active">Mijn setlist</button>
+    <button data-setlist-mode="public">Openbaar</button>
+  </div>
   <div id="setlistRows"></div>
+  <div id="publicSongRows" hidden></div>
   <div class="bottomBtnWrap"><button id="addSongBtn">+ Nummer</button></div>
 </main>
 
@@ -704,6 +732,7 @@
     <div id="edRhythmControls">
       <select id="edMeter" class="chipSelect" aria-label="Maatsoort"></select>
       <select id="edNote" class="chipSelect" aria-label="Nootwaarde"></select>
+      <select id="edBars" class="chipSelect" aria-label="Aantal maten"></select>
       <div class="edTempo">
         <span class="cap">BPM</span>
         <button id="edBpmDown" aria-label="Tempo lager">−</button>
@@ -782,5 +811,6 @@
 </div>
 
 <script src="app.js"></script>
+<script type="module" src="central-store.js"></script>
 </body>
 </html>

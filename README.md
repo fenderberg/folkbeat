@@ -36,6 +36,9 @@ Bluetooth page-turner-pedalen (AirTurn e.d.) sturen PgUp/PgDn of pijltjestoetsen
 ```
 index.html            Opmaak en styling (drie tabbladen: Speler, Setlist, Grooves)
 app.js                Alle logica: sequencer, sample-engine, kits, setlist, editor
+central-store.js      Supabase-synchronisatie en offline wachtrij
+supabase-config.js    Publieke Supabase-projectconfiguratie
+supabase/schema.sql   Tabellen en Row Level Security-regels
 skins/                Optionele CSS-skins; de moderne layout blijft de basis
 sw.js                 Service worker (app network-first, samples cache-first)
 manifest.webmanifest  PWA-manifest
@@ -71,10 +74,18 @@ Alle samples zijn geconverteerd naar mono-mp3 128 kbps met verwijdering van begi
 
 ## Opslag
 
-Alles staat lokaal in `localStorage` onder `folkbeat.*`-sleutels: eigen grooves, setlist, gekozen kit en laatste instellingen. Er is geen backend. Wis je de sitedata van de browser, dan ben je eigen grooves en setlists kwijt — export/import staat op de roadmap.
+De app blijft local-first: de setlist, eigen grooves en instellingen staan direct in `localStorage` onder `folkbeat.*`. Eigen songs en grooves worden daarnaast centraal naar Supabase gesynchroniseerd. Openbare grooves verschijnen vóór de ingebouwde grooves; openbare songs staan in een aparte bibliotheek en kunnen aan de lokale setlist worden toegevoegd.
+
+### Supabase eenmalig activeren
+
+1. Schakel in het Supabase-dashboard **Authentication → Anonymous Sign-Ins** in.
+2. Open **SQL Editor**, plak de volledige inhoud van `supabase/schema.sql` en voer die uit.
+3. Herlaad de app. Boven de setlist verschijnt `Centraal gesynchroniseerd` zodra de verbinding werkt.
+
+Alle records zijn openbaar leesbaar. Alleen de anonieme maker kan een record wijzigen of verwijderen. De publishable key in `supabase-config.js` is bewust publiek; plaats hier nooit een secret- of service-role-key.
 
 ## Bekende beperkingen (iOS)
 
 - Geluid start pas na een eerste tik op het scherm (browserbeleid).
-- De fysieke mute-schakelaar van de iPad dempt web-audio.
+- Op recente iPhones/iPads gebruikt FolkBeat expliciet de `playback`-audiosessie, zodat de interne speaker ook in stille modus werkt. Oudere iOS-versies gebruiken een stille media-unlock als fallback.
 - Web MIDI wordt door Safari niet ondersteund; pedalen werken via toetsaanslagen.

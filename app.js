@@ -2,11 +2,12 @@
 
 /* ============================================================
    INGEBOUWDE GROOVES
-   Waarden zijn velocity 0..1, arraylengte = beats * spb.
+   De seeds hieronder zijn één maat op 8ste-notenresolutie.
+   Ze worden na de definitie omgezet naar twee maten met 16de noten.
    Instrumenten: kick, snare, stick (sidestick), hatC, hatO,
                  tomH, tomL, crash, ride, shaker
    ============================================================ */
-const BUILTIN_STYLES = [
+const BUILTIN_STYLE_SEEDS = [
   {
     id: "reel", name: "Reel", beats: 4, spb: 2, bpm: 110,
     A: {
@@ -140,6 +141,45 @@ const BUILTIN_STYLES = [
   },
 ];
 
+function expandMeasureToSixteenths(part, stepsPerMeasure) {
+  const expanded = {};
+  for (const [instrument, source] of Object.entries(part || {})) {
+    const values = [];
+    for (const velocity of source) values.push(velocity, 0);
+    expanded[instrument] = values.slice(0, stepsPerMeasure);
+    while (expanded[instrument].length < stepsPerMeasure) expanded[instrument].push(0);
+  }
+  return expanded;
+}
+
+function joinMeasures(first, second, stepsPerMeasure) {
+  const joined = {};
+  const instruments = new Set([...Object.keys(first), ...Object.keys(second)]);
+  for (const instrument of instruments) {
+    joined[instrument] = [
+      ...(first[instrument] || new Array(stepsPerMeasure).fill(0)),
+      ...(second[instrument] || new Array(stepsPerMeasure).fill(0))
+    ];
+  }
+  return joined;
+}
+
+const BUILTIN_STYLES = BUILTIN_STYLE_SEEDS.map(seed => {
+  const spb = seed.spb * 2;
+  const stepsPerMeasure = seed.beats * spb;
+  const measureA = expandMeasureToSixteenths(seed.A, stepsPerMeasure);
+  const measureB = expandMeasureToSixteenths(seed.B, stepsPerMeasure);
+  const measureFill = expandMeasureToSixteenths(seed.fill, stepsPerMeasure);
+  return {
+    ...seed,
+    spb,
+    bars: 2,
+    A: joinMeasures(measureA, measureA, stepsPerMeasure),
+    B: joinMeasures(measureB, measureB, stepsPerMeasure),
+    fill: joinMeasures(measureA, measureFill, stepsPerMeasure)
+  };
+});
+
 const ED_INSTRUMENTS = [
   ["kick", "Kick"], ["snare", "Snare"], ["stick", "Stick"],
   ["hatC", "Hat dicht"], ["hatO", "Hat open"],
@@ -161,10 +201,63 @@ function lsSet(key, val) {
 
 let customStyles = lsGet("folkbeat.customStyles", []);
 let setlist = lsGet("folkbeat.setlist", []);
+let publicSongs = [];
+let cloudUserId = null;
 
-function allStyles() { return [...BUILTIN_STYLES, ...customStyles]; }
+function newCloudId(prefix) {
+  const value = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${value}`;
+}
+
+function queueCloud(action, kind, payload) {
+  let queue = lsGet("folkbeat.cloudQueue", []);
+  queue = queue.filter(item => !(item.kind === kind && item.payload?.id === payload?.id));
+  queue.push({ opId: newCloudId("op"), action, kind, payload, queuedAt: new Date().toISOString() });
+  lsSet("folkbeat.cloudQueue", queue);
+  window.dispatchEvent(new CustomEvent("folkbeat:cloud-queue"));
+}
+
+window.addEventListener("folkbeat:cloud-status", event => {
+  const el = document.getElementById("cloudStatus");
+  if (!el) return;
+  el.textContent = event.detail.message || "Alleen lokaal";
+  el.className = event.detail.state || "";
+});
+
+window.addEventListener("folkbeat:cloud-ready", event => {
+  cloudUserId = event.detail.userId;
+  const remoteGrooves = event.detail.grooves || [];
+  const remoteIds = new Set(remoteGrooves.map(groove => groove.id));
+  const localOnly = customStyles.filter(groove => !groove._cloud && !remoteIds.has(groove.id));
+  customStyles = [...remoteGrooves, ...localOnly];
+  lsSet("folkbeat.customStyles", customStyles);
+  publicSongs = event.detail.songs || [];
+
+  for (const groove of localOnly) {
+    groove._cloud = true;
+    groove._ownerId = cloudUserId;
+    groove._readOnly = false;
+    queueCloud("upsert", "groove", groove);
+  }
+  for (const song of setlist) {
+    if (song._fromPublic || song._cloud) continue;
+    if (!song.id) song.id = newCloudId("song");
+    song._cloud = true;
+    queueCloud("upsert", "song", song);
+  }
+  saveSetlist();
+  lsSet("folkbeat.customStyles", customStyles);
+  rebuildStyleLists();
+  renderPublicSongs();
+});
+
+function allStyles() { return [...customStyles, ...BUILTIN_STYLES]; }
 function styleById(id) { return allStyles().find(s => s.id === id); }
-function sigOf(s) { return s.beats === 2 && (s.spb === 3 || s.spb === 6) ? "6/8" : `${s.beats}/4`; }
+function patternLength(s) { return s.beats * s.spb * (s.bars || 1); }
+function sigOf(s) {
+  const meter = s.beats === 2 && (s.spb === 3 || s.spb === 6) ? "6/8" : `${s.beats}/4`;
+  return (s.bars || 1) > 1 ? `${meter} · ${s.bars} maten` : meter;
+}
 
 /* ============================================================
    AUDIO — samples met synth-fallback
@@ -267,9 +360,58 @@ const buffers = {};
 let samplesLoaded = false;
 const rrCounters = {};
 let openHats = []; // actieve open-hihat-hits, voor de choke
+let iosMediaUnlock = null;
+
+function isIOSDevice() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+function configureAudioSession() {
+  try {
+    if (navigator.audioSession) {
+      navigator.audioSession.type = "playback";
+      return true;
+    }
+  } catch (_) {}
+  return false;
+}
+
+function silentWavUrl() {
+  const sampleRate = 8000;
+  const samples = Math.floor(sampleRate / 4);
+  const bytes = new ArrayBuffer(44 + samples * 2);
+  const view = new DataView(bytes);
+  const text = (offset, value) => [...value].forEach((char, i) => view.setUint8(offset + i, char.charCodeAt(0)));
+  text(0, "RIFF"); view.setUint32(4, 36 + samples * 2, true); text(8, "WAVE");
+  text(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true); view.setUint32(28, sampleRate * 2, true);
+  view.setUint16(32, 2, true); view.setUint16(34, 16, true); text(36, "data"); view.setUint32(40, samples * 2, true);
+  return URL.createObjectURL(new Blob([bytes], { type: "audio/wav" }));
+}
+
+function unlockAudioOutput() {
+  if (configureAudioSession() || !isIOSDevice()) return;
+  // Oudere iOS-versies hebben nog geen Audio Session API. Een stil media-element
+  // opent daar de media-uitvoerroute, zodat Web Audio niet aan de beltoonroute blijft hangen.
+  if (!iosMediaUnlock) {
+    iosMediaUnlock = new Audio(silentWavUrl());
+    iosMediaUnlock.loop = true;
+    iosMediaUnlock.playsInline = true;
+    iosMediaUnlock.volume = 0.01;
+  }
+  iosMediaUnlock.play().catch(() => {});
+}
+
+addEventListener("pageshow", configureAudioSession);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible") return;
+  configureAudioSession();
+  if (state?.running && ctx?.state === "suspended") ctx.resume().catch(() => {});
+});
 
 function initAudio() {
   if (ctx) return;
+  configureAudioSession();
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   master = ctx.createGain();
   master.gain.value = (state.volume ?? 90) / 100;
@@ -406,7 +548,7 @@ function style() {
   if (state.preview && ed) return ed;
   return styleById(state.styleId) || BUILTIN_STYLES[0];
 }
-function stepsPerBar() { const s = style(); return s.beats * s.spb; }
+function stepsPerBar() { return patternLength(style()); }
 function stepDur() { return 60 / state.bpm / style().spb; }
 
 // swing: offbeat-achtsten (of -zestienden) iets later; bij triolen (spb 3) niet van toepassing
@@ -442,7 +584,7 @@ function sparserFill(grid) {
 }
 function pickFill(s) {
   const base = s.fill || {};
-  const shapes = [base, busierFill(base, s.beats * s.spb), sparserFill(base)];
+  const shapes = [base, busierFill(base, patternLength(s)), sparserFill(base)];
   return humanizeGrid(shapes[Math.floor(Math.random() * shapes.length)]);
 }
 
@@ -516,6 +658,7 @@ function schedulerLoop() {
 
 function start(opts = {}) {
   initAudio();
+  unlockAudioOutput();
   if (ctx.state === "suspended") ctx.resume();
   state.running = true;
   state.preview = !!opts.preview;
@@ -903,6 +1046,78 @@ function renderSetlist() {
   renderSongBar();
 }
 
+function setSetlistMode(mode) {
+  const isPublic = mode === "public";
+  $("setlistRows").hidden = isPublic;
+  $("publicSongRows").hidden = !isPublic;
+  document.querySelectorAll("#setlistMode [data-setlist-mode]").forEach(button => {
+    button.classList.toggle("active", button.dataset.setlistMode === mode);
+  });
+  $("addSongBtn").parentElement.hidden = isPublic;
+  if (isPublic) renderPublicSongs(); else renderSetlist();
+}
+
+document.querySelectorAll("#setlistMode [data-setlist-mode]").forEach(button => {
+  button.onclick = () => setSetlistMode(button.dataset.setlistMode);
+});
+
+function renderPublicSongs() {
+  const wrap = $("publicSongRows");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+  if (!publicSongs.length) {
+    const empty = document.createElement("p");
+    empty.id = "publicSongEmpty";
+    empty.textContent = window.FolkBeatCloud ? "Nog geen openbare nummers." : "Openbare nummers worden geladen zodra er verbinding is.";
+    wrap.appendChild(empty);
+    return;
+  }
+  for (const song of publicSongs) {
+    const st = styleById(song.styleId);
+    const row = document.createElement("div");
+    row.className = "song-row";
+    row.innerHTML = `
+      <div class="info">
+        <div class="name">${escapeHtml(song.name)}</div>
+        <div class="meta"><span class="groove">${st ? escapeHtml(st.name) : "⚠ groove weg"}</span><span class="bpm">${song.bpm} BPM</span>${song._ownerId === cloudUserId ? '<span class="ownerMark">EIGEN</span>' : ""}</div>
+      </div>
+      <div class="publicActions"><button class="publicAdd">+ Setlist</button>${song._ownerId === cloudUserId ? '<button class="publicDelete" title="Openbaar nummer verwijderen">✕</button>' : ""}</div>`;
+    row.querySelector(".publicAdd").onclick = () => {
+      const copy = {
+        name: song.name,
+        styleId: song.styleId,
+        bpm: song.bpm,
+        swing: song.swing ?? 0,
+        hum: song.hum ?? 0,
+        _fromPublic: true,
+        _sourcePublicId: song.id
+      };
+      setlist.push(copy);
+      saveSetlist();
+      setSetlistMode("local");
+    };
+    const deleteButton = row.querySelector(".publicDelete");
+    if (deleteButton) deleteButton.onclick = () => {
+      if (!confirm(`Openbaar nummer “${song.name}” verwijderen?`)) return;
+      publicSongs = publicSongs.filter(item => item.id !== song.id);
+      queueCloud("delete", "song", { id: song.id });
+      renderPublicSongs();
+    };
+    wrap.appendChild(row);
+  }
+}
+
+function publishLocalSong(song) {
+  if (song._fromPublic) {
+    delete song._fromPublic;
+    delete song._sourcePublicId;
+    song.id = newCloudId("song");
+  }
+  if (!song.id) song.id = newCloudId("song");
+  song._cloud = true;
+  queueCloud("upsert", "song", song);
+}
+
 /* slepen om te herordenen */
 function startDrag(e, i) {
   e.preventDefault();
@@ -982,6 +1197,7 @@ $("saveSongBtn").onclick = () => {
   song.styleId = state.styleId;
   song.swing = state.swing;
   song.hum = state.humanize;
+  publishLocalSong(song);
   saveSetlist();
   renderSetlist();
 };
@@ -1035,8 +1251,10 @@ $("sngSave").onclick = () => {
   const name = $("sngName").value.trim();
   if (!name) { $("sngName").focus(); return; }
   const data = { name, styleId: sng.styleId, bpm: sng.bpm, swing: sng.swing, hum: sng.hum };
+  let savedSong;
   if (sheetSongIdx >= 0) {
     Object.assign(setlist[sheetSongIdx], data);
+    savedSong = setlist[sheetSongIdx];
     if (sheetSongIdx === songIdx) { // dit nummer staat in de speler: meteen doorvoeren
       selectStyleById(data.styleId);
       setBpm(data.bpm);
@@ -1044,8 +1262,10 @@ $("sngSave").onclick = () => {
       setHumanize(data.hum);
     }
   } else {
-    setlist.push(data);
+    savedSong = { id: newCloudId("song"), ...data };
+    setlist.push(savedSong);
   }
+  publishLocalSong(savedSong);
   saveSetlist();
   renderSetlist();
   closeSheets();
@@ -1091,20 +1311,22 @@ function editorRhythmConfig(meter, note) {
 }
 
 function editorRhythmChoice(st) {
-  if (st.beats === 2 && (st.spb === 3 || st.spb === 6)) return { meter: "6/8", note: st.spb === 6 ? "16" : "8" };
-  if (st.beats === 3) return { meter: "3/4", note: st.spb >= 4 ? "16" : "8" };
-  return { meter: "4/4", note: st.spb >= 4 ? "16" : "8" };
+  const bars = st.bars === 2 ? 2 : 1;
+  if (st.beats === 2 && (st.spb === 3 || st.spb === 6)) return { meter: "6/8", note: st.spb === 6 ? "16" : "8", bars };
+  if (st.beats === 3) return { meter: "3/4", note: st.spb >= 4 ? "16" : "8", bars };
+  return { meter: "4/4", note: st.spb >= 4 ? "16" : "8", bars };
 }
 
 function normalizeEditorRhythm(st) {
   const choice = editorRhythmChoice(st);
   Object.assign(st, editorRhythmConfig(choice.meter, choice.note));
+  st.bars = choice.bars;
   return st;
 }
 
 function materialize(st) {
   // zorg dat elk instrument een volledige array heeft
-  const len = st.beats * st.spb;
+  const len = patternLength(st);
   for (const part of ["A", "B", "fill"]) {
     const src = st[part] || {};
     const full = {};
@@ -1119,13 +1341,19 @@ function materialize(st) {
   return st;
 }
 function edNew() {
-  ed = materialize({ id: null, name: "", beats: 4, spb: 2, bpm: 110, custom: true, A: {}, B: {}, fill: {} });
+  ed = materialize({ id: null, name: "", beats: 4, spb: 2, bars: 1, bpm: 110, custom: true, A: {}, B: {}, fill: {} });
   edPart = "A";
   syncEditorFields();
 }
 function edFromStyle(st) {
   ed = materialize(normalizeEditorRhythm(JSON.parse(JSON.stringify(st))));
-  if (!st.custom) { ed.id = null; ed.name = st.name + " (eigen)"; }
+  if (!st.custom || st._readOnly) {
+    ed.id = null;
+    ed.name = st.name + " (eigen)";
+    delete ed._cloud;
+    delete ed._ownerId;
+    delete ed._readOnly;
+  }
   ed.custom = true;
   edPart = "A";
   syncEditorFields();
@@ -1135,8 +1363,9 @@ function syncEditorFields() {
   $("edName").value = ed.name;
   $("edMeter").value = rhythm.meter;
   $("edNote").value = rhythm.note;
+  $("edBars").value = String(rhythm.bars);
   $("edBpm").value = ed.bpm;
-  $("edDelete").hidden = !ed.id;
+  $("edDelete").hidden = !ed.id || ed._readOnly;
   document.querySelectorAll("#edParts button").forEach(b => b.classList.toggle("active", b.dataset.part === edPart));
   renderGrid();
 }
@@ -1150,7 +1379,7 @@ function buildEdSource() {
   for (const s of allStyles()) {
     const o = document.createElement("option");
     o.value = s.id;
-    o.textContent = s.custom ? `★ Bewerk: ${s.name}` : `Kopie van: ${s.name}`;
+    o.textContent = s.custom && !s._readOnly ? `★ Bewerk: ${s.name}` : `Kopie van: ${s.name}`;
     sel.appendChild(o);
   }
 }
@@ -1163,18 +1392,21 @@ $("edLoad").onclick = () => {
 
 function buildSigOptions() {
   $("edMeter").innerHTML = '<option value="3/4">3/4</option><option value="4/4">4/4</option><option value="6/8">6/8</option>';
-  $("edNote").innerHTML = '<option value="8">8ste noten</option><option value="16">16de noten</option>';
+  $("edNote").innerHTML = '<option value="8">8ste</option><option value="16">16de</option>';
+  $("edBars").innerHTML = '<option value="1">1 maat</option><option value="2">2 maten</option>';
 }
 
 function changeEditorRhythm() {
   Object.assign(ed, editorRhythmConfig($("edMeter").value, $("edNote").value));
+  ed.bars = +$("edBars").value;
   materialize(ed);
-  if (state.step >= ed.beats * ed.spb) state.step = 0;
+  if (state.step >= patternLength(ed)) state.step = 0;
   if (state.preview) buildBeatSegs();
   renderGrid();
 }
 $("edMeter").onchange = changeEditorRhythm;
 $("edNote").onchange = changeEditorRhythm;
+$("edBars").onchange = changeEditorRhythm;
 $("edName").oninput = () => { ed.name = $("edName").value; };
 
 function setEditorBpm(value) {
@@ -1206,7 +1438,7 @@ $("edPatternCopy").onclick = () => {
 
 $("edPatternPaste").onclick = () => {
   if (!edPatternClipboard) return;
-  const len = ed.beats * ed.spb;
+  const len = patternLength(ed);
   const pasted = {};
   for (const [inst] of ED_INSTRUMENTS) {
     pasted[inst] = new Array(len).fill(0);
@@ -1231,7 +1463,7 @@ function paintEditorCell(cell, audition = false) {
   ed[editorPaint.part][inst][step] = editorPaint.value;
   if (editorPaint.value) cell.dataset.v = String(editorPaint.value); else delete cell.dataset.v;
   if (audition && editorPaint.value && !state.running) {
-    initAudio(); ctx.resume(); playInstrument(inst, ctx.currentTime, editorPaint.value);
+    initAudio(); unlockAudioOutput(); ctx.resume(); playInstrument(inst, ctx.currentTime, editorPaint.value);
   }
 }
 
@@ -1269,8 +1501,8 @@ addEventListener("blur", () => { editorPaint = null; });
 function renderGrid() {
   const grid = $("edGrid");
   grid.innerHTML = "";
-  const total = ed.beats * ed.spb;
-  const chunkSize = editorGridChunkSize(total);
+  const total = patternLength(ed);
+  const chunkSize = editorGridChunkSize(total, ed.beats * ed.spb);
   for (const [inst, label] of ED_INSTRUMENTS) {
     const instrumentGroup = document.createElement("section");
     instrumentGroup.className = "ed-instrument-group";
@@ -1304,7 +1536,7 @@ function renderGrid() {
   }
 }
 
-function editorGridChunkSize(total) {
+function editorGridChunkSize(total, stepsPerMeasure) {
   if (total <= 8) return total;
   const wrap = $("edGridWrap");
   const style = getComputedStyle(wrap);
@@ -1316,7 +1548,10 @@ function editorGridChunkSize(total) {
   const minimumCell = wide ? 48 : 34;
   const requiredWidth = labelAndGap + total * minimumCell + (total - 1) * 4;
   if (contentWidth >= requiredWidth) return total;
-  return total === 16 ? 8 : total === 12 ? 6 : Math.min(8, total);
+  if (stepsPerMeasure <= 8) return stepsPerMeasure;
+  if (stepsPerMeasure === 12) return 6;
+  if (stepsPerMeasure === 16) return 8;
+  return Math.min(8, total);
 }
 
 let editorResizeFrame = 0;
@@ -1360,7 +1595,7 @@ $("edSave").onclick = () => {
   ed.name = ($("edName").value || "").trim() || "Mijn groove";
   $("edName").value = ed.name;
   const wasNew = !ed.id;
-  if (!ed.id) ed.id = "c" + Date.now();
+  if (!ed.id) ed.id = newCloudId("groove");
   // opslaan als compacte kopie: lege instrumentrijen weglaten
   const store = JSON.parse(JSON.stringify(ed));
   for (const part of ["A", "B", "fill"]) {
@@ -1368,9 +1603,16 @@ $("edSave").onclick = () => {
       if (!store[part][inst].some(v => v)) delete store[part][inst];
     }
   }
+  store._cloud = true;
+  store._ownerId = cloudUserId;
+  store._readOnly = false;
+  ed._cloud = true;
+  ed._ownerId = cloudUserId;
+  ed._readOnly = false;
   const i = customStyles.findIndex(s => s.id === ed.id);
   if (i >= 0) customStyles[i] = store; else customStyles.push(store);
   lsSet("folkbeat.customStyles", customStyles);
+  queueCloud("upsert", "groove", store);
   rebuildStyleLists();
   $("edSource").value = ed.id;
   $("edDelete").hidden = false;
@@ -1388,6 +1630,7 @@ $("edCopy").onclick = () => {
 $("edDelete").onclick = () => {
   if (!ed.id) return;
   if (!confirm(`Groove “${ed.name}” verwijderen?`)) return;
+  if (!ed._readOnly) queueCloud("delete", "groove", { id: ed.id });
   customStyles = customStyles.filter(s => s.id !== ed.id);
   lsSet("folkbeat.customStyles", customStyles);
   if (state.styleId === ed.id) selectStyleById(BUILTIN_STYLES[0].id, true);
