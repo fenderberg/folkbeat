@@ -1,6 +1,6 @@
 # PRD — FolkBeat
 
-*Product Requirements Document · versie 15 juli 2026*
+*Product Requirements Document · versie 16 juli 2026*
 
 ## 1. Waarom dit product
 
@@ -17,17 +17,18 @@ FolkBeat is een software-alternatief voor het BeatBuddy-drumpedaal: een drumcomp
 ## 3. Wat het product doet (huidige functionaliteit)
 
 ### Speler
-- Zes ingebouwde folk-grooves: Reel (4/4), Jig (6/8), Wals (3/4), Polka (2/4), Mazurka (3/4), Scottish (4/4), elk met deel A en B, een fill en een eigen standaardtempo.
-- BeatBuddy-bedieningsmodel: start (met instelbare intro) → loopend deel → fill op afroep → deelwissel via fill → outro (fill + slotcrash) bij stop.
-- Tempo 40–220 BPM: slider, ±-knoppen, tap tempo.
-- Swing 0–100% over de offbeats (uitgeschakeld bij triolen-grooves).
-- Intro-modi: 1 maat aftellen, 2 maten aftellen, fill als intro, direct starten.
-- Zeven drumkits: Akoestisch, Droog & folky, Studio, Vintage, Rock, Bodhrán & percussie, Synth.
-- Beat-indicator, wake lock (scherm blijft aan), grote touch-doelen.
+- Zeven ingebouwde folk-grooves: Reel (4/4), Jig (6/8), Polka (2/4), Folk Rock (4/4), Bluegrass (4/4), Folk Pop (4/4), Ballad (4/4), elk met deel A en B, een fill en een eigen standaardtempo.
+- BeatBuddy-bedieningsmodel: altijd direct starten (geen count-in, geen intro-modi) → loopend deel → fill op afroep → deelwissel (A/B) start meteen een willekeurige fill, midden in de maat → outro (fill + slotcrash) bij stop.
+- Tempo 40–220 BPM: sleep-te-draaien jogwiel, ±-knoppen, tap tempo; tempo-LED knippert op het huidige tempo terwijl de speler stilstaat.
+- Swing 0–100% over de offbeats (uitgeschakeld bij triolen-grooves); humanize-knop ernaast (0–100%) voor losse timing- en aanslagvariatie per hit.
+- Mastervolume-knop, live instelbaar.
+- Zeven drumkits: Akoestisch, Droog & folky, Studio naturel, Punch, Rauw & ruimtelijk, Stomp & klap, Bodhrán & percussie.
+- Interface: Korg Electribe/ES-1-geïnspireerde hardware-faceplate (zilver/petrol) met zeven-segments rode LED-BPM-display, hardware-drukknoppen met statusleds, en moduswisseltabs PATTERN (speler) / SONG (setlist) / EDIT (groove-editor).
+- Beat-indicator als rij rubber stapkeys onderin met meelopende led, wake lock (scherm blijft aan), grote touch-doelen.
 - Toets-/pedaalbediening: spatie/Enter/PgDn/→ = start·stop, PgUp/←/F = fill, B = deelwissel, N/P = volgend/vorig nummer, ↑↓ = tempo.
 
 ### Setlist
-- Nummers met naam, groove, tempo, swing en intro-modus; volgorde aanpasbaar; alles lokaal bewaard (localStorage).
+- Nummers met naam, groove, tempo, swing en humanize; volgorde aanpasbaar; alles lokaal bewaard (localStorage).
 - Laden van een nummer zet de speler volledig goed; ◀ ▶ en N/P navigeren door de set.
 - Bewerken achteraf: ✎-regel in de setlist, of live in de speler aanpassen en met 💾 in het nummer bewaren.
 
@@ -39,7 +40,7 @@ FolkBeat is een software-alternatief voor het BeatBuddy-drumpedaal: een drumcomp
 
 ### Geluid
 - Web Audio API met lookahead-scheduler (sample-accurate timing).
-- 67 echte samples (mono-mp3, ±1,9 MB totaal), 2 round-robin-variaties per instrument, subtiele toonhoogte-/timing-/aanslagvariatie per hit ("humanisering"), open-hihat-choke.
+- Echte samples (mono, mp3 voor de oudere kits / m4a voor de vier nieuwe akoestische kits), 2 round-robin-variaties per instrument, subtiele toonhoogte-/timing-/aanslagvariatie per hit via de humanize-knop, open-hihat-choke.
 - Synth-fallback als samples niet laden; count-in-click altijd synthetisch en strak.
 
 ### Platform
@@ -59,7 +60,7 @@ FolkBeat is een software-alternatief voor het BeatBuddy-drumpedaal: een drumcomp
 |---|---|---|
 | UI | Vanilla HTML/CSS/JS, geen framework | Geen build-stap, direct te hosten, klein |
 | Audio | Web Audio API, lookahead-scheduler (25 ms tick, 120 ms vooruit) | Enige manier om in de browser strak te timen |
-| Samples | mp3 mono 128k, 2 round-robins per instrument | Klein genoeg voor mobiel, mp3 werkt ook op iOS/Safari |
+| Samples | mono, mp3 (oudere kits) of m4a (nieuwe kits) 128k, 2 round-robins per instrument | Klein genoeg voor mobiel, beide formaten werken op iOS/Safari |
 | Kits | `KITS`-array: instrument → samplebestanden, met fallback-kit | Nieuwe kit = één datablokje |
 | Grooves | `STYLES`/customs: velocity-arrays per instrument per deel | Editor en engine delen hetzelfde formaat |
 | Opslag | localStorage (`folkbeat.*`-sleutels) | Geen backend nodig |
@@ -67,21 +68,24 @@ FolkBeat is een software-alternatief voor het BeatBuddy-drumpedaal: een drumcomp
 
 ### Samplebronnen en licenties
 - **The Open Source Drum Kit** (Real Music Media, via github.com/crabacus/the-open-source-drumkit) — gratis uitgebracht drumkit; basis van de kits Akoestisch en Droog & folky.
-- **Tone.js audio-repo** (github.com/Tonejs/audio, afkomstig uit Chris Wilsons web-audio-samples) — kits Studio, Vintage, Rock.
 - **VCSL** (github.com/sgossner/VCSL, **CC0**) — alle percussie van het Bodhrán & percussie-kit en de shaker.
+- **Studio naturel, Punch, Rauw & ruimtelijk, Stomp & klap** — vier nieuwe akoestische kits, samengesteld uit drumsample-packs en geconverteerd naar m4a (zie commit "Rework transport, grooves, and kits for live folk use"). Bron en licentie van deze samples zijn nog niet gedocumenteerd — **actiepunt: uitzoeken en vastleggen vóór een publieke/commerciële release.**
+- De kits Studio, Vintage, Rock en Synth (voorheen gebaseerd op de Tone.js audio-repo) zijn vervangen door bovenstaande vier kits en niet meer in de app aanwezig.
 
 ## 6. Roadmap
 
+✅ **Hosten** — de app draait live op GitHub Pages (https://fenderberg.github.io/folkbeat/) en is op iPad/telefoon installeerbaar en testbaar met de band.
+
 ### Hoog (eerstvolgende stappen)
-1. **Hosten** (GitHub Pages/Netlify) zodat de app op iPad/telefoon geïnstalleerd en met de band getest kan worden. Zonder dit blijft alles pc-gebonden.
-2. **Songstructuur per nummer** — vastgelegde opbouw (intro → n maten A → fill → n maten B → … → outro) die na één druk op start zichzelf afspeelt. Grootste sprong in speelgemak; de oude native README bevatte hiervoor al een sectie-wachtrij-concept.
-3. **Export/import** van setlists en eigen grooves (JSON-bestand) — back-up en delen met bandleden; localStorage is kwetsbaar bij het wissen van browserdata.
+1. **Songstructuur per nummer** — vastgelegde opbouw (n maten A → fill → n maten B → … → outro) die na één druk op start zichzelf afspeelt. Grootste sprong in speelgemak; de oude native README bevatte hiervoor al een sectie-wachtrij-concept.
+2. **Export/import** van setlists en eigen grooves (JSON-bestand) — back-up en delen met bandleden; localStorage is kwetsbaar bij het wissen van browserdata.
+3. **Samplebronnen documenteren** voor de vier nieuwe akoestische kits (Studio naturel, Punch, Rauw & ruimtelijk, Stomp & klap) — zie sectie 5; nu nog niet vastgelegd.
 
 ### Middel
 - Podium-modus (minimale UI, extra groot).
 - Instelbare pedaal-mapping; lang indrukken = volgend nummer.
 - Meer grooves: bourrée, an dro, hanter dro, slip jig (9/8), polska.
-- Volumeregeling (master, evt. per instrumentgroep).
+- Volumeregeling per instrumentgroep (mastervolume is al beschikbaar).
 - Meerdere setlists.
 
 ### Laag / onderzoeken
