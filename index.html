@@ -314,6 +314,26 @@
     background: var(--surface-2); border: none; border-radius: var(--radius-s);
     padding: 9px 14px; font-size: 13px; font-weight: 600; appearance: none; -webkit-appearance: none;
   }
+  .edToolBtn {
+    min-height: 38px; padding: 8px 13px; border-radius: var(--radius-s);
+    background: var(--surface-2); font-size: 13px; font-weight: 700;
+  }
+  .edToolBtn:disabled { opacity: .42; cursor: default; }
+  .edTempo {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--surface-2); border-radius: var(--radius-s); padding: 4px;
+  }
+  .edTempo .cap { padding: 0 5px 0 7px; }
+  .edTempo button {
+    width: 34px; height: 34px; border-radius: 8px; background: var(--surface);
+    font-size: 19px; font-weight: 700;
+  }
+  .edTempo input {
+    width: 48px; background: none; border: 0; outline: 0; text-align: center;
+    font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums;
+    appearance: textfield;
+  }
+  .edTempo input::-webkit-inner-spin-button { appearance: none; }
   label.chipNum {
     display: flex; align-items: center; gap: 6px;
     background: var(--surface-2); border-radius: var(--radius-s); padding: 5px 10px 5px 14px;
@@ -326,21 +346,34 @@
   #edMsg { font-size: 13px; font-weight: 600; color: var(--play); }
 
   #edGridWrap { flex: 1; overflow: auto; min-height: 0; padding: 8px 16px; }
-  #edGrid { display: flex; flex-direction: column; gap: 8px; width: max-content; min-width: 100%; }
-  .ed-line { display: flex; align-items: center; gap: 10px; }
-  .ed-label { width: 62px; font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: var(--text-dim); flex: none; text-transform: uppercase; }
-  .ed-beats { display: flex; gap: 10px; }
-  .ed-beat { display: flex; gap: 4px; }
+  #edGrid { display: flex; flex-direction: column; gap: 9px; width: 100%; min-width: 0; }
+  .ed-instrument-group {
+    display: flex; flex-direction: column; gap: 4px; min-width: 0;
+    padding-bottom: 9px; border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  }
+  .ed-instrument-group:last-child { padding-bottom: 0; border-bottom: 0; }
+  .ed-line { display: grid; grid-template-columns: 58px minmax(0, 1fr); align-items: center; gap: 8px; min-width: 0; }
+  .ed-label { font-size: 9px; font-weight: 700; letter-spacing: 0.04em; color: var(--text-dim); text-transform: uppercase; white-space: nowrap; }
+  .ed-label[data-range]::after {
+    content: attr(data-range); display: block; margin-top: 2px;
+    font-size: 8px; font-weight: 600; letter-spacing: .05em; opacity: .7;
+  }
+  .ed-beats { display: grid; grid-template-columns: repeat(var(--step-count), minmax(0, 1fr)); gap: 4px; min-width: 0; }
   .ed-cell {
-    width: 36px; height: 36px; border-radius: var(--radius-s); cursor: pointer;
-    background: var(--surface-2); flex: none;
+    width: 100%; aspect-ratio: 1; min-width: 0; border-radius: 8px; cursor: pointer;
+    background: var(--surface-2);
     transition: background 120ms ease-out;
   }
+  .ed-cell.beat-start { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--accent) 38%, transparent); }
   .ed-cell[data-v="0.5"] { background: color-mix(in srgb, var(--accent) 40%, var(--surface-2)); }
   .ed-cell[data-v="1"] { background: var(--accent); }
   .ed-cell.playhead { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 45%, transparent); }
   .ed-cell.playhead:not([data-v]) { background: color-mix(in srgb, var(--surface-2) 80%, var(--text)); }
-  @media (min-width: 760px) { .ed-cell { width: 46px; height: 46px; } }
+  @media (min-width: 760px) {
+    .ed-line { grid-template-columns: 78px minmax(0, 1fr); }
+    .ed-beats { grid-template-columns: repeat(var(--step-count), 48px); }
+    .ed-cell { width: 48px; height: 48px; }
+  }
 
   #edActions { display: flex; gap: 10px; padding: 12px 16px calc(20px + env(safe-area-inset-bottom)); flex-shrink: 0; }
   #edActions button { height: 50px; border-radius: var(--radius-m); font-size: 15px; font-weight: 600; }
@@ -502,8 +535,7 @@
       border-radius: var(--radius-l); box-shadow: var(--shadow);
     }
     #edGrid { gap: 10px; }
-    .ed-label { width: 78px; font-size: 11px; }
-    .ed-cell { width: 48px; height: 48px; }
+    .ed-label { font-size: 11px; }
     #edActions { grid-area: actions; padding: 8px 0 0; }
 
     .sheet { max-width: 520px; left: auto; right: 28px; bottom: 28px; border-radius: var(--radius-l); }
@@ -631,8 +663,16 @@
       <button data-part="B">B</button>
       <button data-part="fill">FILL</button>
     </div>
-    <select id="edSig" class="chipSelect"></select>
-    <label class="chipNum">BPM <input id="edBpm" type="number" min="40" max="220"></label>
+    <button id="edPatternCopy" class="edToolBtn">Copy</button>
+    <button id="edPatternPaste" class="edToolBtn" disabled>Paste</button>
+    <select id="edMeter" class="chipSelect" aria-label="Maatsoort"></select>
+    <select id="edNote" class="chipSelect" aria-label="Nootwaarde"></select>
+    <div class="edTempo">
+      <span class="cap">BPM</span>
+      <button id="edBpmDown" aria-label="Tempo lager">−</button>
+      <input id="edBpm" type="number" min="40" max="220" aria-label="Tempo">
+      <button id="edBpmUp" aria-label="Tempo hoger">+</button>
+    </div>
   </div>
   <div class="edRow">
     <select id="edSource" class="chipSelect"></select>
@@ -642,7 +682,7 @@
   <div id="edGridWrap"><div id="edGrid"></div></div>
   <div id="edActions">
     <button id="edSave">Opslaan</button>
-    <button id="edCopy">Kopie</button>
+    <button id="edCopy">Dupliceer groove</button>
     <button id="edDelete" hidden>Verwijder</button>
   </div>
 </main>

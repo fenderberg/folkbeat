@@ -152,7 +152,10 @@ html[data-skin="electribe"] #tempoCluster,
 html[data-skin="electribe"] #ipadControls button,
 html[data-skin="electribe"] .segmented,
 html[data-skin="electribe"] .chipBtn,
-html[data-skin="electribe"] .chipSelect {
+html[data-skin="electribe"] .chipSelect,
+html[data-skin="electribe"] .edToolBtn,
+html[data-skin="electribe"] .edTempo,
+html[data-skin="electribe"] .edTempo button {
   border: 1px solid rgb(0 0 0 / .35);
   border-radius: 5px;
   background: linear-gradient(180deg, #f4f5f7, #c9ccd3);

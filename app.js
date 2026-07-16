@@ -164,7 +164,7 @@ let setlist = lsGet("folkbeat.setlist", []);
 
 function allStyles() { return [...BUILTIN_STYLES, ...customStyles]; }
 function styleById(id) { return allStyles().find(s => s.id === id); }
-function sigOf(s) { return s.spb === 3 ? `${s.beats * 3}/8` : `${s.beats}/4`; }
+function sigOf(s) { return s.beats === 2 && (s.spb === 3 || s.spb === 6) ? "6/8" : `${s.beats}/4`; }
 
 /* ============================================================
    AUDIO — samples met synth-fallback
@@ -412,7 +412,7 @@ function stepDur() { return 60 / state.bpm / style().spb; }
 // swing: offbeat-achtsten (of -zestienden) iets later; bij triolen (spb 3) niet van toepassing
 function swingDelay(step) {
   const s = style();
-  if (s.spb === 3 || step % 2 === 0) return 0;
+  if (s.spb % 3 === 0 || step % 2 === 0) return 0;
   return (state.swing / 100) * stepDur() / 3; // 100% ≈ triolengevoel
 }
 
@@ -579,6 +579,7 @@ function showView(name) {
   for (const v of VIEWS) $("view-" + v).hidden = v !== name;
   document.querySelectorAll("#tabs [data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === name));
   if (name !== "editor" && state.preview) stopNow();
+  if (name === "editor" && ed) renderGrid();
 }
 document.querySelectorAll("#tabs [data-view]").forEach(b => b.onclick = () => showView(b.dataset.view));
 
@@ -1065,6 +1066,24 @@ $("addSongBtn").onclick = () => openSongSheet(-1);
    ============================================================ */
 let ed = null;       // werkkopie van de groove die bewerkt wordt
 let edPart = "A";
+let edPatternClipboard = null;
+
+function editorRhythmConfig(meter, note) {
+  if (meter === "6/8") return { beats: 2, spb: note === "16" ? 6 : 3 };
+  return { beats: meter === "3/4" ? 3 : 4, spb: note === "16" ? 4 : 2 };
+}
+
+function editorRhythmChoice(st) {
+  if (st.beats === 2 && (st.spb === 3 || st.spb === 6)) return { meter: "6/8", note: st.spb === 6 ? "16" : "8" };
+  if (st.beats === 3) return { meter: "3/4", note: st.spb >= 4 ? "16" : "8" };
+  return { meter: "4/4", note: st.spb >= 4 ? "16" : "8" };
+}
+
+function normalizeEditorRhythm(st) {
+  const choice = editorRhythmChoice(st);
+  Object.assign(st, editorRhythmConfig(choice.meter, choice.note));
+  return st;
+}
 
 function materialize(st) {
   // zorg dat elk instrument een volledige array heeft
@@ -1088,15 +1107,17 @@ function edNew() {
   syncEditorFields();
 }
 function edFromStyle(st) {
-  ed = materialize(JSON.parse(JSON.stringify(st)));
+  ed = materialize(normalizeEditorRhythm(JSON.parse(JSON.stringify(st))));
   if (!st.custom) { ed.id = null; ed.name = st.name + " (eigen)"; }
   ed.custom = true;
   edPart = "A";
   syncEditorFields();
 }
 function syncEditorFields() {
+  const rhythm = editorRhythmChoice(ed);
   $("edName").value = ed.name;
-  $("edSig").value = ed.beats + "x" + ed.spb;
+  $("edMeter").value = rhythm.meter;
+  $("edNote").value = rhythm.note;
   $("edBpm").value = ed.bpm;
   $("edDelete").hidden = !ed.id;
   document.querySelectorAll("#edParts button").forEach(b => b.classList.toggle("active", b.dataset.part === edPart));
@@ -1124,31 +1145,29 @@ $("edLoad").onclick = () => {
 };
 
 function buildSigOptions() {
-  const sel = $("edSig");
-  sel.innerHTML = "";
-  const labels = { 2: "8sten", 3: "triolen", 4: "16den" };
-  for (const spb of [2, 3, 4]) {
-    for (let b = 2; b <= 6; b++) {
-      const o = document.createElement("option");
-      o.value = b + "x" + spb;
-      o.textContent = `${b} × ${labels[spb]}`;
-      sel.appendChild(o);
-    }
-  }
+  $("edMeter").innerHTML = '<option value="3/4">3/4</option><option value="4/4">4/4</option><option value="6/8">6/8</option>';
+  $("edNote").innerHTML = '<option value="8">8ste noten</option><option value="16">16de noten</option>';
 }
-$("edSig").onchange = () => {
-  const [b, spb] = $("edSig").value.split("x").map(Number);
-  ed.beats = b;
-  ed.spb = spb;
+
+function changeEditorRhythm() {
+  Object.assign(ed, editorRhythmConfig($("edMeter").value, $("edNote").value));
   materialize(ed);
+  if (state.step >= ed.beats * ed.spb) state.step = 0;
+  if (state.preview) buildBeatSegs();
   renderGrid();
-};
+}
+$("edMeter").onchange = changeEditorRhythm;
+$("edNote").onchange = changeEditorRhythm;
 $("edName").oninput = () => { ed.name = $("edName").value; };
-$("edBpm").onchange = () => {
-  ed.bpm = Math.min(220, Math.max(40, +$("edBpm").value || 110));
+
+function setEditorBpm(value) {
+  ed.bpm = Math.min(220, Math.max(40, Math.round(+value || 110)));
   $("edBpm").value = ed.bpm;
   if (state.preview) setBpm(ed.bpm);
-};
+}
+$("edBpm").onchange = () => setEditorBpm($("edBpm").value);
+holdRepeat($("edBpmUp"), () => setEditorBpm(ed.bpm + 1));
+holdRepeat($("edBpmDown"), () => setEditorBpm(ed.bpm - 1));
 
 document.querySelectorAll("#edParts button").forEach(b => {
   b.onclick = () => {
@@ -1158,24 +1177,53 @@ document.querySelectorAll("#edParts button").forEach(b => {
   };
 });
 
+$("edPatternCopy").onclick = () => {
+  edPatternClipboard = {
+    sourcePart: edPart,
+    pattern: JSON.parse(JSON.stringify(ed[edPart]))
+  };
+  $("edPatternPaste").disabled = false;
+  $("edPatternPaste").title = `Patroon uit ${edPart === "fill" ? "FILL" : edPart} plakken`;
+  edFlash(`${edPart === "fill" ? "FILL" : edPart} gekopieerd`);
+};
+
+$("edPatternPaste").onclick = () => {
+  if (!edPatternClipboard) return;
+  const len = ed.beats * ed.spb;
+  const pasted = {};
+  for (const [inst] of ED_INSTRUMENTS) {
+    pasted[inst] = new Array(len).fill(0);
+    (edPatternClipboard.pattern[inst] || []).forEach((value, i) => {
+      if (i < len) pasted[inst][i] = value;
+    });
+  }
+  ed[edPart] = pasted;
+  renderGrid();
+  edFlash(`Geplakt naar ${edPart === "fill" ? "FILL" : edPart}`);
+};
+
 function renderGrid() {
   const grid = $("edGrid");
   grid.innerHTML = "";
+  const total = ed.beats * ed.spb;
+  const chunkSize = editorGridChunkSize(total);
   for (const [inst, label] of ED_INSTRUMENTS) {
-    const line = document.createElement("div");
-    line.className = "ed-line";
-    const lab = document.createElement("div");
-    lab.className = "ed-label"; lab.textContent = label;
-    line.appendChild(lab);
-    const beats = document.createElement("div");
-    beats.className = "ed-beats";
-    for (let b = 0; b < ed.beats; b++) {
-      const group = document.createElement("div");
-      group.className = "ed-beat";
-      for (let j = 0; j < ed.spb; j++) {
-        const i = b * ed.spb + j;
+    const instrumentGroup = document.createElement("section");
+    instrumentGroup.className = "ed-instrument-group";
+    for (let start = 0; start < total; start += chunkSize) {
+      const end = Math.min(total, start + chunkSize);
+      const line = document.createElement("div");
+      line.className = "ed-line";
+      const lab = document.createElement("div");
+      lab.className = "ed-label"; lab.textContent = label;
+      if (total > chunkSize) lab.dataset.range = `${start + 1}–${end}`;
+      line.appendChild(lab);
+      const beats = document.createElement("div");
+      beats.className = "ed-beats";
+      beats.style.setProperty("--step-count", end - start);
+      for (let i = start; i < end; i++) {
         const cell = document.createElement("div");
-        cell.className = "ed-cell";
+        cell.className = "ed-cell" + (i % ed.spb === 0 ? " beat-start" : "");
         cell.dataset.step = i;
         const v = ed[edPart][inst][i];
         if (v) cell.dataset.v = String(v);
@@ -1188,14 +1236,37 @@ function renderGrid() {
           // meteen even horen wat je aanzet
           if (next && !state.running) { initAudio(); ctx.resume(); playInstrument(inst, ctx.currentTime, next); }
         };
-        group.appendChild(cell);
+        beats.appendChild(cell);
       }
-      beats.appendChild(group);
+      line.appendChild(beats);
+      instrumentGroup.appendChild(line);
     }
-    line.appendChild(beats);
-    grid.appendChild(line);
+    grid.appendChild(instrumentGroup);
   }
 }
+
+function editorGridChunkSize(total) {
+  if (total <= 8) return total;
+  const wrap = $("edGridWrap");
+  const style = getComputedStyle(wrap);
+  const contentWidth = wrap.clientWidth
+    - (parseFloat(style.paddingLeft) || 0)
+    - (parseFloat(style.paddingRight) || 0);
+  const wide = matchMedia("(min-width: 760px)").matches;
+  const labelAndGap = wide ? 86 : 66;
+  const minimumCell = wide ? 48 : 34;
+  const requiredWidth = labelAndGap + total * minimumCell + (total - 1) * 4;
+  if (contentWidth >= requiredWidth) return total;
+  return total === 16 ? 8 : total === 12 ? 6 : Math.min(8, total);
+}
+
+let editorResizeFrame = 0;
+addEventListener("resize", () => {
+  cancelAnimationFrame(editorResizeFrame);
+  editorResizeFrame = requestAnimationFrame(() => {
+    if (ed && !$("view-editor").hidden) renderGrid();
+  });
+});
 function drawPlayhead(step) {
   clearPlayhead();
   document.querySelectorAll(`#edGrid .ed-cell[data-step="${step}"]`).forEach(c => c.classList.add("playhead"));
