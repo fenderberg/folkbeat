@@ -1,4 +1,4 @@
-const CACHE = "folkbeat-v8";
+const CACHE = "folkbeat-v9";
 const MP3S = [
   "kick1", "kick2", "snare1", "snare2", "stick1", "stick2",
   "hatc1", "hatc2", "hato1", "hato2", "tomh1", "tomh2",
